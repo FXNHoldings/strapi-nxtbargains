@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html, body {
+  background: theme('colors.paper');
+  color: theme('colors.ink');
+}
+
+/* Sane defaults for imported WP/GSPB content. The source HTML brings its own
+   <style> blocks; this keeps unstyled fragments from looking broken. */
+.post-content :where(figure) { margin: 1.5rem 0; }
+.post-content :where(table) { width: 100%; border-collapse: collapse; }
+.post-content :where(table th, table td) {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  text-align: left;
+}
