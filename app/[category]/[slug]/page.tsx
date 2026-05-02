@@ -85,7 +85,12 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
   };
 
   return (
-    <article className="mx-auto max-w-7xl px-6 py-12" data-testid={`post-${post.slug}`}>
+    <article
+      className="mx-auto max-w-7xl px-6 py-12"
+      data-testid={`post-${post.slug}`}
+      data-category={category}
+      data-post-type={post.postType}
+    >
       {/* Vendor stylesheets used by the imported product-comparison blocks
           (Content Egg + scoped Bootstrap). Only loaded on post pages. */}
       <link rel="stylesheet" href="/vendor/cegg-bootstrap.min.css" />
@@ -109,7 +114,7 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
         {cat && (
           <p className="text-xs font-bold uppercase tracking-wider text-primary">{cat.name}</p>
         )}
-        <h1 className="mt-3 font-display text-4xl font-bold leading-tight tracking-tight text-ink sm:text-5xl">
+        <h1 className="mt-3 font-display text-[2rem] font-bold leading-tight tracking-tight text-ink">
           {post.title}
         </h1>
         <p className="mt-4 text-sm text-ink/55">

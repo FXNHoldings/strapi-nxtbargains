@@ -5,12 +5,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        // NXT.Bargains palette — bargain-y, energetic, but readable
+        // NXT.Bargains palette — primary blue per brand spec
         primary: {
-          DEFAULT: '#E11D48',
-          emphasis: '#BE123C',
-          hover: '#FECDD3',
-          pressed: '#9F1239',
+          DEFAULT: '#1556ee',
+          emphasis: '#0f43c0',
+          hover: '#c8d6fb',
+          pressed: '#0c389f',
         },
         accent: {
           DEFAULT: '#F59E0B',

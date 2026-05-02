@@ -42,8 +42,8 @@ h1, h2, h3, h4, h5, h6,
   color: theme('colors.ink');
 }
 
-/* Paragraphs / headings / lists OUTSIDE GreenShift blocks */
-.post-content > :where(p, h2, h3, h4, ul, ol, blockquote, hr, figure, pre) {
+/* Paragraphs / headings OUTSIDE GreenShift blocks (lists handled below) */
+.post-content > :where(p, h2, h3, h4, blockquote, hr, figure, pre) {
   margin: 1.25rem 0;
 }
 .post-content > :where(h2) {
@@ -71,12 +71,15 @@ h1, h2, h3, h4, h5, h6,
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
 }
-.post-content > :where(ul, ol) {
+.post-content :where(ul, ol) {
   padding-left: 1.5rem;
+  margin: 0;
 }
-.post-content > ul { list-style: disc; }
-.post-content > ol { list-style: decimal; }
-.post-content > :where(ul, ol) > li { margin: 0.5rem 0; }
+.post-content :where(ul) { list-style-type: disc; }
+.post-content :where(ol) { list-style-type: decimal; }
+.post-content :where(ul) :where(ul) { list-style-type: circle; }
+.post-content :where(ul) :where(ul) :where(ul) { list-style-type: square; }
+.post-content :where(ul, ol) > li { margin: 0.5rem 0; }
 .post-content > :where(blockquote) {
   border-left: 4px solid theme('colors.primary.DEFAULT');
   padding: 0.5rem 1rem;
@@ -92,17 +95,26 @@ h1, h2, h3, h4, h5, h6,
   text-decoration: underline;
 }
 
-/* Plain tables (WP-authored, not GSPB) — borderless per design */
-.post-content :where(table) {
+/* Plain tables (WP-authored, not GSPB) — 1px #dddddd grid per design.
+   Selector is intentionally specific (article + .post-content + table) so it
+   beats the article-level border-color override that follows below. */
+article[data-testid^="post-"] .post-content table {
   width: 100%;
   border-collapse: collapse;
-  border: 0;
   margin: 1.5rem 0;
+  border: 0 !important;
 }
-.post-content :where(table) :where(th, td) {
+article[data-testid^="post-"] .post-content table td {
   padding: 0.5rem 0.75rem;
-  border: 0;
   text-align: left;
+  border: 1px solid #dddddd !important;
+}
+/* Header cells: no visible border (0 / transparent) per design. */
+article[data-testid^="post-"] .post-content table th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border: 0 !important;
+  border-color: transparent !important;
 }
 
 /* Plain top-level images (NOT inside a GSPB block) */
@@ -116,12 +128,100 @@ h1, h2, h3, h4, h5, h6,
 
 /* Inside GSPB blocks: don't touch — let the inline styles drive the layout. */
 
-/* Single post page: every border (chrome, affiliate disclosure, GSPB column
-   dividers, comparison-box outline, etc.) is forced to white so they blend
-   into the paper background. Scoped so it doesn't affect home/category. */
+/* Bootstrap-Icons inline rendering: 1em × 1em, baseline-aligned. Source uses
+   <svg class="bi bi-info-circle"> after the "Amazon price updated:" date so it
+   sits on the same line right after the time. */
+.post-content :where(svg.bi) {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  flex-shrink: 0;
+  fill: currentColor;
+}
+
+/* The cegg "price updated" disclaimer line — keep date + tooltip icon on one
+   line; the source uses <span class="text-nowrap">date<a>icon</a></span>. */
+.post-content .cegg-price-disclaimer small { font-style: italic; }
+.post-content .cegg-price-disclaimer a {
+  text-decoration: none;
+  color: inherit;
+  margin-left: 0.25rem;
+}
+
+/* "BUY NOW" buttons inside imported post bodies use Bootstrap's .btn-primary
+   and .btn-outline-primary from the vendored cegg-bootstrap stylesheet
+   (default Bootstrap blue). Override the per-button CSS variables to brand
+   blue (#1556ee) without touching Bootstrap's globals. */
+.post-content .btn-primary {
+  --bs-btn-bg: #1556ee;
+  --bs-btn-border-color: #1556ee;
+  --bs-btn-hover-bg: #0f43c0;
+  --bs-btn-hover-border-color: #0f43c0;
+  --bs-btn-active-bg: #0c389f;
+  --bs-btn-active-border-color: #0c389f;
+  --bs-btn-disabled-bg: #1556ee;
+  --bs-btn-disabled-border-color: #1556ee;
+}
+.post-content .btn-outline-primary {
+  --bs-btn-color: #1556ee;
+  --bs-btn-border-color: #1556ee;
+  --bs-btn-hover-bg: #1556ee;
+  --bs-btn-hover-border-color: #1556ee;
+  --bs-btn-active-bg: #1556ee;
+  --bs-btn-active-border-color: #1556ee;
+  --bs-btn-disabled-color: #1556ee;
+  --bs-btn-disabled-border-color: #1556ee;
+}
+.post-content .text-bg-primary {
+  background-color: #1556ee !important;
+}
+
+/* Cegg grid product card — soft elevation */
+.post-content .cegg-grid-card {
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 5px 0px,
+              rgba(0, 0, 0, 0.1) 0px 0px 1px 0px;
+}
+
+/* Buttons inside grid cards use a darker blue (#0046be) to distinguish them
+   from the side-by-side comparison-block buttons. */
+.post-content .cegg-grid-card .btn-primary {
+  --bs-btn-bg: #0046be;
+  --bs-btn-border-color: #0046be;
+  --bs-btn-hover-bg: #052f7c;
+  --bs-btn-hover-border-color: #052f7c;
+  --bs-btn-active-bg: #052f7c;
+  --bs-btn-active-border-color: #052f7c;
+  --bs-btn-disabled-bg: #0046be;
+  --bs-btn-disabled-border-color: #0046be;
+}
+.post-content .cegg-grid-card .btn-outline-primary {
+  --bs-btn-color: #0046be;
+  --bs-btn-border-color: #0046be;
+  --bs-btn-hover-bg: #0046be;
+  --bs-btn-hover-border-color: #0046be;
+  --bs-btn-active-bg: #0046be;
+  --bs-btn-active-border-color: #0046be;
+  --bs-btn-disabled-color: #0046be;
+  --bs-btn-disabled-border-color: #0046be;
+}
+
+/* Single post page: white surface + every border (chrome, affiliate disclosure,
+   GSPB column dividers, comparison-box outline, etc.) forced to white so they
+   blend into the page. Scoped so it doesn't affect home/category. */
+article[data-testid^="post-"] {
+  background-color: #ffffff;
+}
 article[data-testid^="post-"],
 article[data-testid^="post-"] * {
   border-color: #ffffff !important;
+}
+
+/* Product Comparison single page: keep a subtle outline (#eeeeee) on the
+   comparison box and dividers so the two-product layout reads visually. */
+article[data-testid^="post-"][data-category="product-comparisons"],
+article[data-testid^="post-"][data-category="product-comparisons"] * {
+  border-color: #eeeeee !important;
 }
 
 /* ---------------------------------------------------------------------------
@@ -195,14 +295,70 @@ article[data-testid^="post-"] * {
   }
 }
 
+/* GreenShift FAQ accordion — question (title) bar styling.
+   Source markup keys per-instance IDs we can't match, so target by class. */
+.post-content .gs-accordion-item > .gs-accordion-item__title {
+  background-color: #f9f9f9;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  padding: 0.875rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.post-content .gs-accordion-item__heading,
+.post-content .gs-accordion-item__heading * {
+  font-size: 18px;
+  font-weight: 600;
+}
+.post-content .gs-accordion-item > .gs-accordion-item__content {
+  background-color: #ffffff;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-top: 0;
+}
+/* Closed state — collapses the answer panel. PostContent.tsx adds `.gsclose`
+   to every accordion item on mount and toggles it on title click. */
+.post-content .gs-accordion-item.gsclose > .gs-accordion-item__content {
+  display: none;
+}
+/* Visual toggle indicator on the title bar */
+.post-content .gs-accordion-item > .gs-accordion-item__title::after {
+  content: '−';
+  margin-left: 1rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: rgba(15, 23, 42, 0.5);
+  transition: transform 0.15s ease;
+}
+.post-content .gs-accordion-item.gsclose > .gs-accordion-item__title::after {
+  content: '+';
+}
+.post-content .gs-accordion-item__heading {
+  margin: 0 !important;
+  flex: 1;
+}
+
 /* GreenShift heading block (e.g. "Advantages", "Drawbacks") — bold 19px label
    above the icon-lists in product roundups. */
 .post-content .gspb_heading {
   font-size: 19px;
   font-weight: 700;
-  margin: 1rem 0 22px;
+  margin: 30px 0 0 0;
   font-family: var(--font-urbanist), system-ui, sans-serif;
   color: theme('colors.ink');
+}
+/* When the GSPB heading is rendered as a real <h2>/<h3> (i.e. it's a major
+   section header like "FAQs" / "Phone FAQs", not a sub-label like
+   Advantages/Drawbacks) give it more breathing room above. */
+.post-content h2.gspb_heading,
+.post-content h3.gspb_heading {
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
 }
 
 /* GreenShift icon list — used for Advantages (check) / Drawbacks (x) lists. */

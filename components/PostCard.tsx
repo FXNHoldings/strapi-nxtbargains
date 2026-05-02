@@ -20,7 +20,7 @@ export default function PostCard({ post, variant = 'tile' }: { post: NxtPost; va
             <img
               src={img}
               alt={post.coverImage?.alternativeText || post.title}
-              className="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+              className="aspect-[16/10] w-full object-contain transition duration-500 group-hover:scale-[1.02]"
             />
           ) : (
             <div className="aspect-[16/10] w-full bg-gradient-to-br from-primary-hover to-primary" />
@@ -60,7 +60,7 @@ export default function PostCard({ post, variant = 'tile' }: { post: NxtPost; va
               <img
                 src={img}
                 alt={post.coverImage?.alternativeText || post.title}
-                className="aspect-square h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                className="aspect-square h-full w-full object-contain transition duration-500 group-hover:scale-105"
               />
             ) : (
               <div className="aspect-square bg-gradient-to-br from-primary-hover to-primary" />
@@ -89,7 +89,7 @@ export default function PostCard({ post, variant = 'tile' }: { post: NxtPost; va
           <img
             src={img}
             alt={post.coverImage?.alternativeText || post.title}
-            className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+            className="aspect-[4/3] w-full object-contain transition duration-500 group-hover:scale-[1.02]"
           />
         ) : (
           <div className="aspect-[4/3] w-full bg-gradient-to-br from-primary-hover to-primary" />

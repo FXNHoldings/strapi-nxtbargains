@@ -35,13 +35,13 @@ export const SECTIONS: Section[] = [
   {
     slug: 'product-reviews',
     title: 'Product Reviews',
-    short: 'Reviews',
+    short: 'Product Reviews',
     blurb: 'Hands-on takes — what works, what doesn’t, what’s worth the money.',
   },
   {
     slug: 'product-roundups',
     title: 'Product Roundups',
-    short: 'Roundups',
+    short: 'Product Roundups',
     blurb: 'Best-of lists for the categories you’re actually shopping in.',
   },
   {
