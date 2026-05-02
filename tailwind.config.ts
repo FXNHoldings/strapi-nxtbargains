@@ -21,8 +21,12 @@ export default {
         muted: '#F1F5F9',
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        // Body: Outfit, weight 300 by default (set on <body>).
+        sans: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
+        // Headings + display: Urbanist.
+        display: ['var(--font-urbanist)', 'system-ui', 'sans-serif'],
+        urbanist: ['var(--font-urbanist)', 'system-ui', 'sans-serif'],
+        outfit: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
       },
       maxWidth: { prose: '70ch' },
       borderRadius: {

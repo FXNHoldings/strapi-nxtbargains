@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { mediaUrl, type NxtPost } from '@/lib/strapi';
-import { fmtDate, postPath } from '@/lib/format';
+import { fmtDate, firstImageUrl, postPath } from '@/lib/format';
 
 type Variant = 'feature' | 'compact' | 'tile';
 
 export default function PostCard({ post, variant = 'tile' }: { post: NxtPost; variant?: Variant }) {
-  const img = mediaUrl(post.coverImage ?? null);
+  // Cover image: prefer Strapi coverImage; fall back to the first <img> in the
+  // post body (typically the first product image in a comparison/roundup).
+  const img = mediaUrl(post.coverImage ?? null) ?? firstImageUrl(post.content);
   const href = postPath(post);
   const cat = post.categories?.[0];
 

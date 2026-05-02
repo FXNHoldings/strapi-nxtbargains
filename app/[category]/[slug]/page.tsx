@@ -85,18 +85,24 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
   };
 
   return (
-    <article className="mx-auto max-w-3xl px-6 py-12" data-testid={`post-${post.slug}`}>
+    <article className="mx-auto max-w-7xl px-6 py-12" data-testid={`post-${post.slug}`}>
+      {/* Vendor stylesheets used by the imported product-comparison blocks
+          (Content Egg + scoped Bootstrap). Only loaded on post pages. */}
+      <link rel="stylesheet" href="/vendor/cegg-bootstrap.min.css" />
+      <link rel="stylesheet" href="/vendor/cegg-products.min.css" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
 
-      <nav className="text-xs text-ink/55" data-testid="breadcrumb">
-        <Link href="/" className="hover:text-primary">Home</Link>
-        <span className="mx-2">/</span>
-        <Link href={`/${category}`} className="hover:text-primary">
+      <nav className="flex items-center gap-2 text-xs text-ink/55" data-testid="breadcrumb" aria-label="Breadcrumb">
+        <Link href="/" className="shrink-0 hover:text-primary">Home</Link>
+        <span className="shrink-0">/</span>
+        <Link href={`/${category}`} className="shrink-0 hover:text-primary">
           {cat?.name ?? categoryName(category)}
         </Link>
+        <span className="shrink-0">/</span>
+        <span className="min-w-0 truncate text-ink/75" aria-current="page">{post.title}</span>
       </nav>
 
       <header className="mt-4">
@@ -106,9 +112,6 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
         <h1 className="mt-3 font-display text-4xl font-bold leading-tight tracking-tight text-ink sm:text-5xl">
           {post.title}
         </h1>
-        {post.excerpt && (
-          <p className="mt-4 text-lg leading-7 text-ink/70">{post.excerpt}</p>
-        )}
         <p className="mt-4 text-sm text-ink/55">
           Published {fmtDate(post.publishedAt)}
           {post.readingTimeMinutes ? ` · ${post.readingTimeMinutes} min read` : ''}
@@ -137,7 +140,7 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
       {related.length > 0 && (
         <aside className="mt-16">
           <h2 className="font-display text-2xl font-bold tracking-tight text-ink">More in {cat?.name ?? categoryName(category)}</h2>
-          <div className="mt-6 grid gap-x-8 gap-y-10 sm:grid-cols-2">
+          <div className="mt-6 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
             {related.map((r) => (
               <PostCard key={r.id} post={r} variant="tile" />
             ))}

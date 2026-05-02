@@ -9,14 +9,257 @@
 html, body {
   background: theme('colors.paper');
   color: theme('colors.ink');
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-weight: 300;
 }
 
-/* Sane defaults for imported WP/GSPB content. The source HTML brings its own
-   <style> blocks; this keeps unstyled fragments from looking broken. */
-.post-content :where(figure) { margin: 1.5rem 0; }
-.post-content :where(table) { width: 100%; border-collapse: collapse; }
-.post-content :where(table th, table td) {
+/* All headings — site chrome and post body — use Urbanist. */
+h1, h2, h3, h4, h5, h6,
+.post-content h1, .post-content h2, .post-content h3,
+.post-content h4, .post-content h5, .post-content h6 {
+  font-family: var(--font-urbanist), system-ui, sans-serif;
+}
+
+/* Post body text uses Outfit-300 (matches <body>) */
+.post-content {
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-weight: 300;
+}
+
+/* ---------------------------------------------------------------------------
+   .post-content typography
+   The imported HTML brings its own GreenShift/GSPB <style> blocks for the
+   product comparison boxes. We must NOT add a global rule that styles every
+   <p>/<img>/<a> uniformly, because that breaks GSPB's flex layout (the side
+   by-side product columns). Instead: target ONLY the direct children that
+   are plain WP markup (paragraphs, headings, lists, blockquotes, plain
+   tables, plain images) and explicitly skip anything inside .gspb_*.
+   --------------------------------------------------------------------------- */
+
+.post-content {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: theme('colors.ink');
+}
+
+/* Paragraphs / headings / lists OUTSIDE GreenShift blocks */
+.post-content > :where(p, h2, h3, h4, ul, ol, blockquote, hr, figure, pre) {
+  margin: 1.25rem 0;
+}
+.post-content > :where(h2) {
+  font-family: theme('fontFamily.display');
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  color: theme('colors.ink');
+}
+.post-content > :where(h3) {
+  font-family: theme('fontFamily.display');
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: theme('colors.ink');
+}
+.post-content > :where(h4) {
+  font-family: theme('fontFamily.display');
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.post-content > :where(ul, ol) {
+  padding-left: 1.5rem;
+}
+.post-content > ul { list-style: disc; }
+.post-content > ol { list-style: decimal; }
+.post-content > :where(ul, ol) > li { margin: 0.5rem 0; }
+.post-content > :where(blockquote) {
+  border-left: 4px solid theme('colors.primary.DEFAULT');
+  padding: 0.5rem 1rem;
+  background: theme('colors.muted');
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-style: italic;
+}
+.post-content :where(a:not(.gspb_row a, .gspb_col a, [class*="gspb_"] a)) {
+  color: theme('colors.primary.DEFAULT');
+  text-decoration: none;
+}
+.post-content :where(a:not(.gspb_row a, .gspb_col a, [class*="gspb_"] a)):hover {
+  text-decoration: underline;
+}
+
+/* Plain tables (WP-authored, not GSPB) — borderless per design */
+.post-content :where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  border: 0;
+  margin: 1.5rem 0;
+}
+.post-content :where(table) :where(th, td) {
   padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(15, 23, 42, 0.1);
+  border: 0;
   text-align: left;
+}
+
+/* Plain top-level images (NOT inside a GSPB block) */
+.post-content > :where(img) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1.5rem auto;
+}
+
+/* Inside GSPB blocks: don't touch — let the inline styles drive the layout. */
+
+/* Single post page: every border (chrome, affiliate disclosure, GSPB column
+   dividers, comparison-box outline, etc.) is forced to white so they blend
+   into the paper background. Scoped so it doesn't affect home/category. */
+article[data-testid^="post-"],
+article[data-testid^="post-"] * {
+  border-color: #ffffff !important;
+}
+
+/* ---------------------------------------------------------------------------
+   GreenShift (gspb_*) layout fallbacks
+   The imported HTML's inline <style> tags reference random GSPB instance IDs
+   (e.g. #gspb_row-id-gsbp-r4q8ub4h-p37j) that *do not match* the IDs in the
+   markup itself — the source WP server returns mismatched IDs in
+   `content.rendered`. The id-based rules are inert, so we add class-based
+   fallbacks for the structural layout (side-by-side columns, etc.).
+   --------------------------------------------------------------------------- */
+.post-content .gspb_row { position: relative; }
+.post-content .gspb_row__content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1200px;
+}
+.post-content .gspb_row__col--6 {
+  width: 50%;
+  padding: 15px min(3vw, 20px);
+  box-sizing: border-box;
+  position: relative;
+}
+.post-content .gspb_row__col--4  { width: 33.3333%; padding: 15px min(3vw, 20px); box-sizing: border-box; }
+.post-content .gspb_row__col--3  { width: 25%;       padding: 15px min(3vw, 20px); box-sizing: border-box; }
+.post-content .gspb_row__col--12 { width: 100%;      padding: 15px min(3vw, 20px); box-sizing: border-box; }
+@media (max-width: 767.98px) {
+  .post-content .gspb_row__col--6,
+  .post-content .gspb_row__col--4,
+  .post-content .gspb_row__col--3 { width: 100%; }
+}
+.post-content [id^=gspb_col-id] {
+  padding: 15px min(3vw, 20px);
+  box-sizing: border-box;
+  position: relative;
+}
+.post-content .gspb_container { position: relative; }
+
+/* Versus column dividers and headers (used by the comparison template) */
+.post-content .tmn-versus-col + .tmn-versus-col {
+  border-left: 1px dashed #cecece;
+}
+@media (max-width: 767.98px) {
+  .post-content .tmn-versus-col + .tmn-versus-col { border-left: none; }
+}
+.post-content .tmn-verus-title {
+  text-align: center;
+  color: #fff;
+  padding: 10px 1rem;
+  margin: 0 -15px 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.post-content .tmn-versus-col:nth-of-type(1) .tmn-verus-title { background: #304ffe; }
+.post-content .tmn-versus-col:nth-of-type(2) .tmn-verus-title { background: #009688; }
+
+/* Pros/cons two-column grid: when a GSPB container has two .tmn-pros children
+   (Advantages + Drawbacks), lay them side-by-side. The source defines this on
+   per-instance IDs that don't survive REST round-trips, so we use :has(). */
+.post-content .gspb_container:has(> .tmn-pros + .tmn-pros) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 35px;
+  margin-bottom: 30px;
+}
+@media (max-width: 767.98px) {
+  .post-content .gspb_container:has(> .tmn-pros + .tmn-pros) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* GreenShift heading block (e.g. "Advantages", "Drawbacks") — bold 19px label
+   above the icon-lists in product roundups. */
+.post-content .gspb_heading {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 1rem 0 22px;
+  font-family: var(--font-urbanist), system-ui, sans-serif;
+  color: theme('colors.ink');
+}
+
+/* GreenShift icon list — used for Advantages (check) / Drawbacks (x) lists. */
+.post-content .gspb_iconsList { padding: 0; margin: 0 0 1rem; }
+.post-content .gspb_iconsList__item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 10px;
+  position: relative;
+}
+.post-content .gspb_iconsList__item__text {
+  margin-left: 15px;
+  font-family: var(--font-outfit), system-ui, sans-serif;
+}
+.post-content .gspb_iconsList__item svg {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px;
+  margin: 0 !important;
+  flex-shrink: 0;
+}
+/* Icon colors — distinguished by Bootstrap-Icons class names baked into the SVG */
+.post-content .gspb_iconsList__item svg.bi-check-circle path { fill: #00d084; }
+.post-content .gspb_iconsList__item svg.bi-x-circle path     { fill: #de1414; }
+.post-content .gspb_iconsList__item svg.bi-info-circle path  { fill: #0d6efd; }
+.post-content .gspb_iconsList__item svg.bi-exclamation-triangle path { fill: #f59e0b; }
+
+/* GreenShift progress-bar / rating circle (the "8.4" score widget).
+   Source IDs vary, so we apply via the stable class names. */
+.post-content .gspb-progressbar_circle {
+  position: relative;
+  height: 100px;
+  width: 100px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1.5rem auto;
+}
+.post-content .gspb-progressbar_circle svg {
+  height: 100px;
+  width: 100px;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.post-content .gspb-progressbar_circle svg path {
+  stroke-width: 6px;
+  stroke: #2184f9;
+  fill: #f2fffe;
+}
+.post-content .gspb-progressbar_circle_value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111;
+  z-index: 1;
+  position: relative;
+  font-family: var(--font-urbanist), system-ui, sans-serif;
 }

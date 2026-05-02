@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { SITE, SECTIONS } from '@/lib/site';
 
 export default function Header() {
@@ -8,8 +9,15 @@ export default function Header() {
       data-testid="site-header"
     >
       <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-4">
-        <Link href="/" className="block shrink-0 font-display text-2xl font-extrabold tracking-tight text-ink" data-testid="logo-link">
-          <span className="text-primary">NXT</span>.<span className="text-ink">Bargains</span>
+        <Link href="/" className="block shrink-0" data-testid="logo-link" aria-label={`${SITE.name} home`}>
+          <Image
+            src="/nxt_bargains_logo.png"
+            alt={SITE.name}
+            width={450}
+            height={218}
+            priority
+            className="h-10 w-auto sm:h-12"
+          />
         </Link>
 
         <form

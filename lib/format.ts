@@ -19,3 +19,12 @@ export function primaryCategorySlug(post: { categories?: { slug: string }[] }): 
 export function postPath(post: { slug: string; categories?: { slug: string }[] }): string {
   return `/${primaryCategorySlug(post)}/${post.slug}`;
 }
+
+// First inline <img src="..."> in post body HTML — used as a thumbnail fallback
+// when a post has no coverImage (e.g., when the WP featured_media reference
+// was orphaned, but the body still has Amazon product images).
+export function firstImageUrl(html?: string): string | null {
+  if (!html) return null;
+  const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return m?.[1] ?? null;
+}
