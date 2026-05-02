@@ -12,14 +12,16 @@ export const metadata: Metadata = {
   alternates: { canonical: '/sitemap' },
 };
 
+type PostSlug = { slug: string; category: string; updatedAt: string };
+
 export default async function HtmlSitemapPage() {
-  const [posts, cmsCats] = await Promise.all([
-    listAllPostSlugs().catch(() => []),
+  const [posts, cmsCats]: [PostSlug[], NxtCategory[]] = await Promise.all([
+    listAllPostSlugs().catch(() => [] as PostSlug[]),
     listCategories().catch(() => [] as NxtCategory[]),
   ]);
 
   // Group posts by their primary category slug for the listing
-  const byCat = new Map<string, typeof posts>();
+  const byCat = new Map<string, PostSlug[]>();
   for (const p of posts) {
     if (!byCat.has(p.category)) byCat.set(p.category, []);
     byCat.get(p.category)!.push(p);
