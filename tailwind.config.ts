@@ -21,16 +21,13 @@ export default {
         muted: '#F1F5F9',
       },
       fontFamily: {
-        // Single font for the whole site — Inter, self-hosted.
-        // CSS variable defined in globals.css via @font-face.
-        sans: ['var(--font-inter)'],
-        display: ['var(--font-inter)'],
-        // Aliases kept so existing `font-urbanist` / `font-outfit` utilities
-        // still resolve. Both point at Inter.
-        urbanist: ['var(--font-inter)'],
-        outfit: ['var(--font-inter)'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
-      maxWidth: { prose: '70ch' },
+      maxWidth: {
+        '7xl': '1366px',
+        prose: '70ch',
+      },
       borderRadius: {
         '3xl': '0.75rem',
       },

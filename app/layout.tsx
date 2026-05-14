@@ -2,11 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import GeniuslinkScripts from '@/components/GeniuslinkScripts';
 import { SITE } from '@/lib/site';
-
-// Fonts are self-hosted via @font-face in globals.css (public/fonts/InterVariable*.woff2).
-// No next/font/google fetch — keeps the build offline-friendly and lands the
-// font on our own origin so pageload makes zero requests to fonts.gstatic.com.
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -32,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        <GeniuslinkScripts />
       </body>
     </html>
   );

@@ -1,40 +1,36 @@
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/InterVariable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/InterVariable-Italic.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Self-hosted Inter (variable, latin) — saved at public/fonts/InterVariable*.woff2.
-   One file covers every weight 100-900 + matching italic. */
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/InterVariable.woff2') format('woff2-variations'),
-       url('/fonts/InterVariable.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: italic;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/InterVariable-Italic.woff2') format('woff2-variations'),
-       url('/fonts/InterVariable-Italic.woff2') format('woff2');
-}
-
 :root {
   color-scheme: light;
-  --font-inter: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  /* Aliased so existing Tailwind `font-display` / `font-outfit` / `font-urbanist`
-     utilities all resolve to Inter without touching consumers. */
-  --font-urbanist: var(--font-inter);
-  --font-outfit: var(--font-inter);
+  --font-inter: 'Inter';
 }
 
 html, body {
   background: theme('colors.paper');
   color: theme('colors.ink');
-  font-family: var(--font-inter);
-  font-weight: 400;
+  font-family: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+p {
+  font-family: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
 }
 
 /* Site-wide h1/h2/h3 sizing. Uses !important to override per-component
@@ -43,17 +39,48 @@ h1 { font-size: 2.5rem !important; line-height: 1.1; }
 h2 { font-size: 1.5rem !important; line-height: 1.25; }
 h3 { font-size: 1.2rem !important; line-height: 1.3; }
 
-/* All headings (site chrome + post body) — Inter, the single site font. */
 h1, h2, h3, h4, h5, h6,
 .post-content h1, .post-content h2, .post-content h3,
 .post-content h4, .post-content h5, .post-content h6 {
-  font-family: var(--font-inter);
+  font-family: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 700 !important;
+}
+
+main[data-testid^="product-price-"] h1.product-title {
+  font-size: 1.5rem !important;
+}
+
+main[data-testid^="product-price-"] .product-main-image {
+  background: transparent !important;
+  box-shadow: none !important;
+  mix-blend-mode: multiply;
+  filter: contrast(1.02);
+}
+
+main[data-testid^="product-price-"] .product-offer-list .product-offer-row-extra {
+  display: none;
+}
+
+main[data-testid^="product-price-"] .product-offer-list:has(.product-offer-toggle:checked) .product-offer-row-extra {
+  display: grid;
+}
+
+main[data-testid^="product-price-"] .product-offer-list .show-less-offers {
+  display: none;
+}
+
+main[data-testid^="product-price-"] .product-offer-list:has(.product-offer-toggle:checked) .show-more-offers {
+  display: none;
+}
+
+main[data-testid^="product-price-"] .product-offer-list:has(.product-offer-toggle:checked) .show-less-offers {
+  display: inline;
 }
 
 /* Post body text */
 .post-content {
-  font-family: var(--font-inter);
-  font-weight: 400;
+  font-family: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 300;
 }
 
 /* ---------------------------------------------------------------------------
@@ -207,10 +234,10 @@ article[data-testid^="post-"] .post-content table th {
   background-color: #1556ee !important;
 }
 
-/* Cegg grid product card — soft elevation */
-.post-content .cegg-grid-card {
-  box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 5px 0px,
-              rgba(0, 0, 0, 0.1) 0px 0px 1px 0px;
+/* Remove imported product image/card shadows. */
+.post-content :where(img, .cegg-grid-card, .cegg-list-card),
+.post-content :where(.cegg-grid-card, .cegg-list-card):hover {
+  box-shadow: none !important;
 }
 
 /* Buttons inside grid cards use a darker blue (#0046be) to distinguish them
@@ -236,22 +263,25 @@ article[data-testid^="post-"] .post-content table th {
   --bs-btn-disabled-border-color: #0046be;
 }
 
-/* Single post page: white surface + every border (chrome, affiliate disclosure,
-   GSPB column dividers, comparison-box outline, etc.) forced to white so they
-   blend into the page. Scoped so it doesn't affect home/category. */
+/* Single post page base surface. */
 article[data-testid^="post-"] {
   background-color: #ffffff;
-}
-article[data-testid^="post-"],
-article[data-testid^="post-"] * {
-  border-color: #ffffff !important;
 }
 
 /* Product Comparison single page: keep a subtle outline (#eeeeee) on the
    comparison box and dividers so the two-product layout reads visually. */
-article[data-testid^="post-"][data-category="product-comparisons"],
-article[data-testid^="post-"][data-category="product-comparisons"] * {
+article[data-testid^="post-"][data-category="product-comparisons"] .post-content * {
   border-color: #eeeeee !important;
+}
+
+article[data-testid^="post-"] .post-content > p:first-of-type::first-letter {
+  float: left;
+  margin: 0.08em 0.16em 0 0;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 4.4rem;
+  font-weight: 700;
+  line-height: 0.82;
+  color: theme('colors.ink');
 }
 
 /* ---------------------------------------------------------------------------
@@ -378,7 +408,7 @@ article[data-testid^="post-"][data-category="product-comparisons"] * {
   font-size: 19px;
   font-weight: 700;
   margin: 30px 0 0 0;
-  font-family: var(--font-urbanist), system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
   color: theme('colors.ink');
 }
 /* When the GSPB heading is rendered as a real <h2>/<h3> (i.e. it's a major
@@ -402,7 +432,7 @@ article[data-testid^="post-"][data-category="product-comparisons"] * {
 }
 .post-content .gspb_iconsList__item__text {
   margin-left: 15px;
-  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
 .post-content .gspb_iconsList__item svg {
   width: 16px !important;
@@ -447,5 +477,5 @@ article[data-testid^="post-"][data-category="product-comparisons"] * {
   color: #111;
   z-index: 1;
   position: relative;
-  font-family: var(--font-urbanist), system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
