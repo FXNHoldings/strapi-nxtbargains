@@ -21,11 +21,11 @@ export default {
         muted: '#F1F5F9',
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-body)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-heading)', 'system-ui', 'sans-serif'],
       },
       maxWidth: {
-        '7xl': '1366px',
+        '7xl': '1420px',
         prose: '70ch',
       },
       borderRadius: {

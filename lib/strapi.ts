@@ -3,6 +3,13 @@ import qs from 'qs';
 const BASE = (process.env.NEXT_PUBLIC_STRAPI_URL || 'https://cms.fxnstudio.com').replace(/\/$/, '');
 const TOKEN = process.env.STRAPI_API_TOKEN;
 
+// commerce-products is a Strapi pool SHARED with other sites (e.g. bestlooking.skin).
+// Each storefront only shows products tagged for it. nxt.bargains products carry the
+// `nxt-bargains` tag (set by the sourcing tool / search.fxnstudio.com when sourced for
+// this site). Override via env if needed. `tags` is filtered with $containsi (the only
+// JSON-array operator Strapi serves reliably here; $contains 500s).
+const SITE_PRODUCT_TAG = process.env.NEXT_PUBLIC_SITE_PRODUCT_TAG || 'nxt-bargains';
+
 export type StrapiImage = { url: string; alternativeText?: string; width?: number; height?: number } | null;
 
 export type NxtPostType =
@@ -276,7 +283,10 @@ export async function getCategory(slug: string): Promise<NxtCategory | null> {
 export async function listCommerceProducts(
   opts: { page?: number; pageSize?: number; q?: string } = {},
 ) {
-  const filters: Record<string, unknown> = { status: { $eq: 'active' } };
+  const filters: Record<string, unknown> = {
+    productStatus: { $eq: 'active' },
+    tags: { $containsi: SITE_PRODUCT_TAG },
+  };
   if (opts.q?.trim()) {
     const q = opts.q.trim();
     filters.$or = [
@@ -300,7 +310,7 @@ export async function listCommerceProducts(
 
 export async function getCommerceProduct(slug: string): Promise<CommerceProduct | null> {
   const res = await strapiFetch<ListResponse<CommerceProduct>>('commerce-products', {
-    filters: { slug: { $eq: slug }, status: { $eq: 'active' } },
+    filters: { slug: { $eq: slug }, productStatus: { $eq: 'active' }, tags: { $containsi: SITE_PRODUCT_TAG } },
     populate: COMMERCE_PRODUCT_POPULATE,
     pagination: { pageSize: 1 },
   });
@@ -344,7 +354,8 @@ export async function listSimilarCommerceProducts(
 
   const res = await strapiFetch<ListResponse<CommerceProduct>>('commerce-products', {
     filters: {
-      status: { $eq: 'active' },
+      productStatus: { $eq: 'active' },
+      tags: { $containsi: SITE_PRODUCT_TAG },
       $and: tokens.map((token) => ({ name: { $containsi: token } })),
     },
     populate: COMMERCE_PRODUCT_POPULATE,
@@ -352,6 +363,94 @@ export async function listSimilarCommerceProducts(
     pagination: { pageSize },
   });
   return res.data;
+}
+
+export type Store = {
+  name: string;
+  slug: string;
+  logo: string | null;
+  websiteUrl: string | null;
+  productCount: number;
+};
+
+function storeSlug(name: string, slug?: string) {
+  return slug || name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+// Distinct merchants/stores that have offers on this storefront's products.
+export async function listStores(): Promise<Store[]> {
+  const res = await strapiFetch<ListResponse<CommerceProduct>>('commerce-products', {
+    filters: { productStatus: { $eq: 'active' }, tags: { $containsi: SITE_PRODUCT_TAG } },
+    populate: COMMERCE_PRODUCT_POPULATE,
+    pagination: { pageSize: 100 },
+  });
+  const map = new Map<string, { name: string; slug: string; logo: string | null; websiteUrl: string | null; products: Set<string> }>();
+  for (const product of res.data) {
+    for (const offer of product.offers ?? []) {
+      const m = offer.merchant;
+      if (!m?.name) continue;
+      const slug = storeSlug(m.name, m.slug);
+      if (!map.has(slug)) map.set(slug, { name: m.name, slug, logo: mediaUrl(m.logo ?? null), websiteUrl: m.websiteUrl ?? null, products: new Set() });
+      map.get(slug)!.products.add(product.slug);
+    }
+  }
+  return [...map.values()]
+    .map((s) => ({ name: s.name, slug: s.slug, logo: s.logo, websiteUrl: s.websiteUrl, productCount: s.products.size }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'en'));
+}
+
+// Products on this storefront that have an offer from a given store/merchant.
+export async function listStoreProducts(slug: string): Promise<{ store: Store | null; products: CommerceProduct[] }> {
+  const res = await strapiFetch<ListResponse<CommerceProduct>>('commerce-products', {
+    filters: {
+      productStatus: { $eq: 'active' },
+      tags: { $containsi: SITE_PRODUCT_TAG },
+      offers: { merchant: { slug: { $eqi: slug } } },
+    },
+    populate: COMMERCE_PRODUCT_POPULATE,
+    sort: ['updatedAt:desc'],
+    pagination: { pageSize: 48 },
+  });
+  const products = res.data;
+  let store: Store | null = null;
+  for (const p of products) {
+    for (const o of p.offers ?? []) {
+      const m = o.merchant;
+      if (m && storeSlug(m.name, m.slug) === slug) {
+        store = { name: m.name, slug, logo: mediaUrl(m.logo ?? null), websiteUrl: m.websiteUrl ?? null, productCount: products.length };
+        break;
+      }
+    }
+    if (store) break;
+  }
+  return { store, products };
+}
+
+export type CommerceReview = {
+  id: number;
+  authorName: string;
+  rating: number;
+  title?: string | null;
+  body: string;
+  createdAt: string;
+};
+
+// Approved reviews for a product (shown in the Reviews tab).
+export async function listProductReviews(productDocumentId: string): Promise<CommerceReview[]> {
+  if (!productDocumentId) return [];
+  try {
+    const res = await strapiFetch<ListResponse<CommerceReview>>('commerce-reviews', {
+      filters: {
+        product: { documentId: { $eq: productDocumentId } },
+        reviewStatus: { $eq: 'approved' },
+      },
+      sort: ['createdAt:desc'],
+      pagination: { pageSize: 50 },
+    });
+    return res.data;
+  } catch {
+    return [];
+  }
 }
 
 export async function listAllCommerceProductSlugs(): Promise<{ slug: string; updatedAt: string }[]> {

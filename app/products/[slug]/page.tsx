@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import {
@@ -16,19 +19,32 @@ import {
 import {
   getCommerceProduct,
   listCommercePriceSnapshots,
+  listCommerceProducts,
+  listProductReviews,
   listSimilarCommerceProducts,
   mediaUrl,
   type CommerceOffer,
   type CommercePriceSnapshot,
   type CommerceProduct,
+  type CommerceReview,
 } from '@/lib/strapi';
+import { wrapImpactAffiliate } from '@/lib/impact-links';
 import { fmtDate } from '@/lib/format';
 import { SITE } from '@/lib/site';
+import PriceAlertForm from '@/components/PriceAlertForm';
+import ReviewForm from '@/components/ReviewForm';
+import CommerceProductCard from '@/components/CommerceProductCard';
 
 export const revalidate = 60;
 export const dynamicParams = true;
 
 type Params = { slug: string };
+
+// Outbound buy link: Impact deep-link if the merchant matches an approved Impact
+// campaign (e.g. Whatnot), otherwise the offer's own affiliate/product URL.
+function buyUrl(offer: CommerceOffer): string {
+  return wrapImpactAffiliate(offer) ?? offerUrl(offer);
+}
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug } = await params;
@@ -67,13 +83,38 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
 
   const similarProducts = await listSimilarCommerceProducts(product).catch(() => [] as CommerceProduct[]);
   const comparable = comparableProducts(product, similarProducts);
+  let related = comparable.filter((p) => p.slug !== product.slug).slice(0, 10);
+  // Sparse catalog: if no name-similar products, fall back to other products on
+  // this storefront so the section still populates.
+  if (related.length < 5) {
+    const more = await listCommerceProducts({ pageSize: 12 }).then((r) => r.data).catch(() => [] as CommerceProduct[]);
+    const seen = new Set([product.slug, ...related.map((p) => p.slug)]);
+    related = [...related, ...more.filter((p) => !seen.has(p.slug))].slice(0, 10);
+  }
   const rows = collectOfferRows(product, comparable);
   const priceSnapshots = await listCommercePriceSnapshots(
     [product, ...comparable].map((item) => item.documentId).filter(Boolean) as string[],
   ).catch(() => [] as CommercePriceSnapshot[]);
+  const reviews = await listProductReviews(product.documentId ?? '').catch(() => [] as CommerceReview[]);
   const best = bestOffer(rows);
   const image = productImageUrl(product);
   const brand = product.brandRef?.name ?? product.brand;
+
+  // Live multi-store offers (scripts/fetch-live-offers.mjs → data/live-offers.json).
+  // Only show when the match is confident (2+ stores), so we never display a
+  // mis-matched single offer. Links are already GeniusLink-wrapped at fetch time.
+  let liveOffers: LiveOffer[] = [];
+  let liveCapturedAt: string | null = null;
+  try {
+    const p = join(process.cwd(), 'data', 'live-offers.json');
+    if (existsSync(p)) {
+      const entry = (JSON.parse(readFileSync(p, 'utf8')).items ?? {})[slug];
+      if (entry && Array.isArray(entry.offers) && entry.offers.length >= 2) {
+        liveOffers = entry.offers as LiveOffer[];
+        liveCapturedAt = entry.capturedAt ?? null;
+      }
+    }
+  } catch {}
   const category = product.categories?.[0]?.name ?? product.category;
   const bestPrice = best ? offerPrice(best.offer) : null;
   const pricedRows = rows.filter((row) => offerPrice(row.offer) !== null);
@@ -123,7 +164,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
       />
 
       <section className="bg-white py-6 sm:py-8">
-        <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
+        <div className="mx-auto max-w-[1420px] px-4 sm:px-6">
           <nav className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-ink/45" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-primary">Home</Link>
             <span>/</span>
@@ -182,16 +223,12 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
                       </span>
                     </div>
 
-                    {best && (
-                      <a
-                        href={offerUrl(best.offer)}
-                        target="_blank"
-                        rel="nofollow sponsored noopener noreferrer"
-                        className="mt-4 inline-flex min-w-[210px] justify-center bg-primary px-6 py-3 text-sm font-bold uppercase tracking-[0.04em] text-white transition hover:bg-primary-emphasis"
-                      >
-                        Buy For Best Price
-                      </a>
-                    )}
+                    <PriceAlertForm
+                      productDocumentId={product.documentId}
+                      currency={best?.offer.currency ?? 'USD'}
+                      currentPrice={bestPrice ?? undefined}
+                      buyHref={best ? buyUrl(best.offer) : undefined}
+                    />
 
                     <p className="mt-5 text-sm text-ink/55">
                       Updated {updatedLabel}
@@ -241,21 +278,54 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
       </section>
 
       <section className="pb-12">
-        <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
+        <div className="mx-auto max-w-[1420px] px-4 sm:px-6">
           <ProductInfoTabs
             productId={product.id}
             productName={product.name}
             summary={summary}
+            description={product.description}
             specs={product.specs}
             best={best}
             bestMerchant={bestMerchant}
             rows={rows}
             snapshots={priceSnapshots}
+            reviews={reviews}
+            productDocumentId={product.documentId ?? ''}
             fallbackDate={product.updatedAt}
             updatedLabel={updatedLabel}
           />
         </div>
       </section>
+
+      {liveOffers.length >= 2 && (
+        <section className="border-t border-ink/10 py-12" data-testid="live-prices">
+          <div className="mx-auto max-w-[1420px] px-4 sm:px-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 className="font-display text-2xl font-bold text-ink">Live prices across stores</h2>
+              <p className="text-xs text-ink/45">
+                <span className="mr-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-bold text-emerald-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Live
+                </span>
+                Real-time offers{liveCapturedAt ? ` · updated ${timeAgo(liveCapturedAt)}` : ''}
+              </p>
+            </div>
+            <LivePrices offers={liveOffers} />
+          </div>
+        </section>
+      )}
+
+      {related.length > 0 && (
+        <section className="border-t border-ink/10 bg-paper py-12" data-testid="related-products">
+          <div className="mx-auto max-w-[1420px] px-4 sm:px-6">
+            <h2 className="font-display text-2xl font-bold text-ink">Related products</h2>
+            <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
+              {related.slice(0, 5).map((p) => (
+                <CommerceProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
@@ -264,22 +334,28 @@ function ProductInfoTabs({
   productId,
   productName,
   summary,
+  description,
   specs,
   best,
   bestMerchant,
   rows,
   snapshots,
+  reviews,
+  productDocumentId,
   fallbackDate,
   updatedLabel,
 }: {
   productId: number;
   productName: string;
   summary: string;
+  description?: string | null;
   specs?: Record<string, unknown> | null;
   best: CommerceOfferRow | null;
   bestMerchant: string | null;
   rows: CommerceOfferRow[];
   snapshots: CommercePriceSnapshot[];
+  reviews: CommerceReview[];
+  productDocumentId: string;
   fallbackDate?: string;
   updatedLabel: string;
 }) {
@@ -354,7 +430,13 @@ function ProductInfoTabs({
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div>
             <h2 className="font-display text-2xl font-bold text-ink">Product details</h2>
-            <p className="mt-4 max-w-3xl text-[14px] leading-7 text-ink/70">{summary}</p>
+            {description ? (
+              <div className="mt-4 max-w-3xl text-[14px] leading-7 text-ink/70">
+                <ProductDescription markdown={description} />
+              </div>
+            ) : (
+              <p className="mt-4 max-w-3xl text-[14px] leading-7 text-ink/70">{summary}</p>
+            )}
           </div>
           <dl className="grid gap-3 text-sm">
             <DetailRow label="Best price" value={best ? formatMoney(best.offer.price ?? best.offer.originalPrice, best.offer.currency ?? 'USD') : 'Check price'} />
@@ -419,8 +501,33 @@ function ProductInfoTabs({
       </div>
 
       <div className="product-tab-panel tab-panel-reviews">
-        <div className="p-6 text-sm leading-6 text-ink/60 sm:p-8">
-          Reviews are not available for this product yet.
+        <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-ink">
+              Reviews{reviews.length ? ` (${reviews.length})` : ''}
+            </h2>
+            {reviews.length === 0 ? (
+              <p className="mt-4 text-sm leading-6 text-ink/60">No reviews yet — be the first to review {productName}.</p>
+            ) : (
+              <ul className="mt-5 divide-y divide-ink/10">
+                {reviews.map((r) => (
+                  <li key={r.id} className="py-5 first:pt-0">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-amber-400" aria-label={`${r.rating} out of 5`}>
+                        {'★'.repeat(Math.max(0, Math.min(5, Math.round(r.rating))))}
+                        <span className="text-ink/20">{'★'.repeat(5 - Math.max(0, Math.min(5, Math.round(r.rating))))}</span>
+                      </span>
+                      <span className="font-display text-sm font-bold text-ink">{r.authorName}</span>
+                      <span className="text-xs text-ink/40">{fmtDate(r.createdAt)}</span>
+                    </div>
+                    {r.title && <p className="mt-2 font-display text-sm font-bold text-ink">{r.title}</p>}
+                    <p className="mt-1.5 text-sm leading-6 text-ink/70">{r.body}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <ReviewForm productDocumentId={productDocumentId} />
         </div>
       </div>
     </div>
@@ -642,7 +749,7 @@ function CompactOfferRow({ row, className = '' }: { row: CommerceOfferRow; class
   return (
     <div className={`product-offer-row grid min-h-[48px] grid-cols-[minmax(0,1fr)_108px_82px] border-b border-ink/10 text-sm last:border-b-0 ${className}`}>
       <a
-        href={offerUrl(offer)}
+        href={buyUrl(offer)}
         target="_blank"
         rel="nofollow sponsored noopener noreferrer"
         className="flex min-w-0 items-center gap-2 px-3 py-2 text-ink transition hover:text-primary"
@@ -662,7 +769,7 @@ function CompactOfferRow({ row, className = '' }: { row: CommerceOfferRow; class
         {unavailable && <p className="mt-0.5 text-[10px] font-bold text-red-600">out of stock</p>}
       </div>
       <a
-        href={offerUrl(offer)}
+        href={buyUrl(offer)}
         target="_blank"
         rel="nofollow sponsored noopener noreferrer"
         aria-label={`See offer for ${offer.title || product.name} at ${merchantName(offer)}`}
@@ -929,4 +1036,140 @@ function schemaCondition(value?: CommerceOffer['condition']): string {
     default:
       return 'https://schema.org/NewCondition';
   }
+}
+
+/* Tiny markdown renderer for the product description format we generate
+   (### headings + "- " bullets + paragraphs separated by blank lines).
+   No external dependency; the format is constrained so a hand-rolled parser
+   is shorter than wiring up `marked` and safer than dangerouslySetInnerHTML. */
+function ProductDescription({ markdown }: { markdown: string }) {
+  function inline(text: string): ReactNode {
+    const parts: ReactNode[] = [];
+    const re = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+    let last = 0;
+    let m: RegExpExecArray | null;
+    let key = 0;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) parts.push(text.slice(last, m.index));
+      const tok = m[0];
+      if (tok.startsWith('**')) parts.push(<strong key={key++}>{tok.slice(2, -2)}</strong>);
+      else parts.push(<em key={key++}>{tok.slice(1, -1)}</em>);
+      last = m.index + tok.length;
+    }
+    if (last < text.length) parts.push(text.slice(last));
+    return parts;
+  }
+
+  const lines = markdown.replace(/\r\n/g, '\n').split('\n');
+  const blocks: ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) { i += 1; continue; }
+    if (line.startsWith('### ')) {
+      blocks.push(
+        <h3 key={key++} className="mt-6 pt-1 font-display text-base font-bold text-ink first:mt-0">
+          {inline(line.slice(4).trim())}
+        </h3>,
+      );
+      i += 1;
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      blocks.push(
+        <h3 key={key++} className="mt-6 font-display text-lg font-bold text-ink first:mt-0">
+          {inline(line.slice(3).trim())}
+        </h3>,
+      );
+      i += 1;
+      continue;
+    }
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*[-*]\s+/, ''));
+        i += 1;
+      }
+      blocks.push(
+        <ul key={key++} className="mt-3 list-disc space-y-1.5 pl-5">
+          {items.map((it, idx) => <li key={idx}>{inline(it)}</li>)}
+        </ul>,
+      );
+      continue;
+    }
+    const para: string[] = [];
+    while (
+      i < lines.length
+      && lines[i].trim()
+      && !lines[i].startsWith('### ')
+      && !lines[i].startsWith('## ')
+      && !/^\s*[-*]\s+/.test(lines[i])
+    ) {
+      para.push(lines[i]);
+      i += 1;
+    }
+    blocks.push(<p key={key++} className="mt-3 first:mt-0">{inline(para.join(' '))}</p>);
+  }
+  return <div>{blocks}</div>;
+}
+
+type LiveOffer = {
+  store: string;
+  price: string | null;
+  priceValue: number | null;
+  originalPrice: string | null;
+  onSale: boolean;
+  condition: string | null;
+  favicon: string | null;
+  url: string;
+};
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3.6e6);
+  if (h < 1) return 'just now';
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+/* Live multi-store price comparison rows (cheapest first; row #0 is "Best
+   price"). Links are GeniusLink-wrapped at fetch time for auto-affiliation. */
+function LivePrices({ offers }: { offers: LiveOffer[] }) {
+  return (
+    <div className="mt-6 overflow-hidden border border-ink/10">
+      {offers.map((o, i) => (
+        <a
+          key={`${o.store}-${i}`}
+          href={o.url}
+          target="_blank"
+          rel="nofollow sponsored noopener noreferrer"
+          className="flex items-center gap-4 border-b border-ink/10 px-4 py-3 transition last:border-b-0 hover:bg-paper"
+        >
+          {o.favicon ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={o.favicon} alt="" referrerPolicy="no-referrer" className="h-6 w-6 shrink-0 rounded object-contain" />
+          ) : (
+            <span className="h-6 w-6 shrink-0 rounded bg-muted" />
+          )}
+          <span className="min-w-0 flex-1">
+            <span className="line-clamp-1 block font-display text-sm font-bold text-ink">{o.store}</span>
+            {o.condition && o.condition.toLowerCase() !== 'new' ? (
+              <span className="text-xs text-ink/45">{o.condition}</span>
+            ) : null}
+          </span>
+          {i === 0 && (
+            <span className="hidden rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 sm:inline">Best price</span>
+          )}
+          <span className="text-right">
+            <span className="block font-display text-base font-bold text-ink">{o.price ?? '—'}</span>
+            {o.onSale && o.originalPrice ? (
+              <span className="text-xs text-ink/40 line-through">{o.originalPrice}</span>
+            ) : null}
+          </span>
+          <span className="ml-2 hidden shrink-0 border border-primary px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary sm:inline">View</span>
+        </a>
+      ))}
+    </div>
+  );
 }

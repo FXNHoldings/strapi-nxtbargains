@@ -3,17 +3,25 @@ import {
   bestOffer,
   collectOfferRows,
   formatMoney,
-  merchantCount,
   merchantName,
   productImageUrl,
 } from '@/lib/commerce';
-import type { CommerceProduct } from '@/lib/strapi';
+import { mediaUrl, type CommerceProduct } from '@/lib/strapi';
 
-export default function CommerceProductCard({ product }: { product: CommerceProduct }) {
+export default function CommerceProductCard({
+  product,
+  showStoreLogo = false,
+}: {
+  product: CommerceProduct;
+  showStoreLogo?: boolean;
+}) {
   const rows = collectOfferRows(product);
   const best = bestOffer(rows);
   const image = productImageUrl(product);
   const category = product.categories?.[0]?.name ?? product.category ?? 'Product';
+  const bestMerchant = best?.offer.merchant ?? null;
+  const storeLogo = bestMerchant?.logo ? mediaUrl(bestMerchant.logo) : null;
+  const storeName = best ? merchantName(best.offer) : null;
 
   return (
     <article className="group flex h-full flex-col border border-ink/10 bg-white" data-testid={`commerce-product-${product.slug}`}>
@@ -33,38 +41,43 @@ export default function CommerceProductCard({ product }: { product: CommerceProd
       </Link>
 
       <div className="flex flex-1 flex-col p-5">
-        <p className="line-clamp-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
-          {category}
-        </p>
+        {showStoreLogo ? (
+          <div className="flex h-5 items-center">
+            {storeLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={storeLogo} alt={storeName ?? 'Marketplace'} referrerPolicy="no-referrer" className="h-5 max-w-[96px] object-contain object-left" />
+            ) : (
+              <span className="line-clamp-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{storeName ?? category}</span>
+            )}
+          </div>
+        ) : (
+          <p className="line-clamp-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
+            {category}
+          </p>
+        )}
         <Link href={`/products/${product.slug}`}>
-          <h2 className="mt-3 line-clamp-3 font-display text-xl font-bold leading-tight text-ink transition group-hover:text-primary">
+          <h3 className="product-card-title mt-3 line-clamp-2 font-display leading-tight text-ink transition group-hover:text-primary">
             {product.name}
-          </h2>
+          </h3>
         </Link>
 
-        {product.shortDescription && (
-          <p className="mt-3 line-clamp-2 text-sm leading-6 text-ink/60">{product.shortDescription}</p>
-        )}
-
-        <div className="mt-auto grid grid-cols-2 gap-3 pt-5 text-sm">
-          <div className="border border-ink/10 p-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-ink/40">From</p>
-            <p className="mt-1 font-display text-lg font-bold text-ink">
-              {best ? formatMoney(best.offer.price ?? best.offer.originalPrice, best.offer.currency ?? 'USD') : 'Check price'}
+        {/* From price on one line (no border) + store/marketplace name */}
+        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
+          <p className="font-display text-base font-bold text-ink">
+            <span className="mr-1 text-[11px] font-bold uppercase tracking-[0.12em] text-ink/40">From</span>
+            {best ? formatMoney(best.offer.price ?? best.offer.originalPrice, best.offer.currency ?? 'USD') : 'Check price'}
+          </p>
+          {storeLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={storeLogo} alt={storeName ?? 'Store'} referrerPolicy="no-referrer" className="h-5 max-w-[84px] shrink-0 object-contain object-right" />
+          ) : (
+            <p className="line-clamp-1 text-right text-xs font-bold text-ink/55">
+              {best ? merchantName(best.offer) : 'No offers yet'}
             </p>
-          </div>
-          <div className="border border-ink/10 p-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-ink/40">Stores</p>
-            <p className="mt-1 font-display text-lg font-bold text-ink">
-              {rows.length ? merchantCount(rows) : 0}
-            </p>
-          </div>
+          )}
         </div>
 
-        <div className="mt-5 flex items-center justify-between gap-4">
-          <p className="line-clamp-1 text-xs text-ink/45">
-            {best ? merchantName(best.offer) : 'No offers yet'}
-          </p>
+        <div className="mt-4 flex justify-start">
           <Link
             href={`/products/${product.slug}`}
             className="inline-flex bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis"

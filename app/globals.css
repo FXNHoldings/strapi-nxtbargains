@@ -14,6 +14,22 @@
   font-display: swap;
 }
 
+/* Urbanist — headings (self-hosted, variable weight) */
+@font-face {
+  font-family: 'Urbanist';
+  src: url('/fonts/UrbanistVariable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Urbanist';
+  src: url('/fonts/UrbanistVariable-Italic.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -21,16 +37,22 @@
 :root {
   color-scheme: light;
   --font-inter: 'Inter';
+  /* Body / paragraph text */
+  --font-body: 'Inter';
+  /* Headings (page + post) */
+  --font-heading: 'Inter';
 }
 
 html, body {
   background: theme('colors.paper');
   color: theme('colors.ink');
-  font-family: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: var(--font-body), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
 }
 
-p {
-  font-family: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+p,
+ul li, ul li a,
+ol li, ol li a {
+  font-family: var(--font-body), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
 }
 
 /* Site-wide h1/h2/h3 sizing. Uses !important to override per-component
@@ -38,16 +60,25 @@ p {
 h1 { font-size: 2.5rem !important; line-height: 1.1; }
 h2 { font-size: 1.5rem !important; line-height: 1.25; }
 h3 { font-size: 1.2rem !important; line-height: 1.3; }
+/* Product-card title: smaller and semibold (overrides the site-wide h3 rule). */
+h3.product-card-title { font-size: 15px !important; font-weight: 600 !important; }
+
+/* Force a uniform 4px radius on every button and button-styled link
+   (Compare, View on X, Track price, tabs, carousel arrows, toggles, …). */
+button,
+a[class*="inline-flex"] {
+  border-radius: 4px !important;
+}
 
 h1, h2, h3, h4, h5, h6,
 .post-content h1, .post-content h2, .post-content h3,
 .post-content h4, .post-content h5, .post-content h6 {
-  font-family: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: var(--font-heading), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
   font-weight: 700 !important;
 }
 
 main[data-testid^="product-price-"] h1.product-title {
-  font-size: 1.5rem !important;
+  font-size: 2rem !important;
 }
 
 main[data-testid^="product-price-"] .product-main-image {
@@ -61,7 +92,10 @@ main[data-testid^="product-price-"] .product-offer-list .product-offer-row-extra
   display: none;
 }
 
-main[data-testid^="product-price-"] .product-offer-list:has(.product-offer-toggle:checked) .product-offer-row-extra {
+/* Reveal via the classic checked-checkbox sibling combinator (the toggle input
+   is the first child of .product-offer-list, so it precedes every row/footer).
+   Avoids :has(), which older browsers don't support — that broke "Show all". */
+main[data-testid^="product-price-"] .product-offer-toggle:checked ~ .product-offer-row-extra {
   display: grid;
 }
 
@@ -69,17 +103,17 @@ main[data-testid^="product-price-"] .product-offer-list .show-less-offers {
   display: none;
 }
 
-main[data-testid^="product-price-"] .product-offer-list:has(.product-offer-toggle:checked) .show-more-offers {
+main[data-testid^="product-price-"] .product-offer-toggle:checked ~ * .show-more-offers {
   display: none;
 }
 
-main[data-testid^="product-price-"] .product-offer-list:has(.product-offer-toggle:checked) .show-less-offers {
+main[data-testid^="product-price-"] .product-offer-toggle:checked ~ * .show-less-offers {
   display: inline;
 }
 
 /* Post body text */
 .post-content {
-  font-family: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-weight: 300;
 }
 
@@ -277,7 +311,7 @@ article[data-testid^="post-"][data-category="product-comparisons"] .post-content
 article[data-testid^="post-"] .post-content > p:first-of-type::first-letter {
   float: left;
   margin: 0.08em 0.16em 0 0;
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
   font-size: 4.4rem;
   font-weight: 700;
   line-height: 0.82;
@@ -408,7 +442,7 @@ article[data-testid^="post-"] .post-content > p:first-of-type::first-letter {
   font-size: 19px;
   font-weight: 700;
   margin: 30px 0 0 0;
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
   color: theme('colors.ink');
 }
 /* When the GSPB heading is rendered as a real <h2>/<h3> (i.e. it's a major
@@ -432,7 +466,7 @@ article[data-testid^="post-"] .post-content > p:first-of-type::first-letter {
 }
 .post-content .gspb_iconsList__item__text {
   margin-left: 15px;
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
 }
 .post-content .gspb_iconsList__item svg {
   width: 16px !important;
@@ -477,5 +511,5 @@ article[data-testid^="post-"] .post-content > p:first-of-type::first-letter {
   color: #111;
   z-index: 1;
   position: relative;
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
 }
