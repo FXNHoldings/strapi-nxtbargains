@@ -46,6 +46,7 @@
 html, body {
   background: theme('colors.paper');
   color: theme('colors.ink');
+  font-size: 16px;
   font-family: var(--font-body), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
 }
 
@@ -55,11 +56,12 @@ ol li, ol li a {
   font-family: var(--font-body), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
 }
 
-/* Site-wide h1/h2/h3 sizing. Uses !important to override per-component
-   Tailwind utility classes (e.g. text-5xl) without touching every file. */
-h1 { font-size: 2.5rem !important; line-height: 1.1; }
-h2 { font-size: 1.5rem !important; line-height: 1.25; }
-h3 { font-size: 1.2rem !important; line-height: 1.3; }
+/* Global type scale (Standard). One place controls headings site-wide;
+   !important so it applies on every page without per-element overrides. */
+h1 { font-size: 2.5rem !important; line-height: 1.1; }      /* 40px */
+h2 { font-size: 1.75rem !important; line-height: 1.2; }     /* 28px */
+h3 { font-size: 1.25rem !important; line-height: 1.3; }     /* 20px */
+h4 { font-size: 1.0625rem !important; line-height: 1.35; }  /* 17px */
 /* Product-card title: smaller and semibold (overrides the site-wide h3 rule). */
 h3.product-card-title { font-size: 15px !important; font-weight: 600 !important; }
 

@@ -1,227 +1,125 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SITE } from '@/lib/site';
+import ValueStrip from '@/components/ValueStrip';
 
 export const metadata: Metadata = {
   title: 'About Us',
-  description:
-    `${SITE.name} — your independent, tech-savvy companions in smart electronics and home gadgets. Comprehensive guides, price comparisons and up-to-the-minute information.`,
+  description: `${SITE.name} — your tech-savvy companions in smart electronics: comprehensive guides, price comparisons and up-to-the-minute information.`,
   alternates: { canonical: '/about' },
 };
+
+const pillars = [
+  { n: '01', t: 'Easy-to-digest guides', d: 'In-depth articles that break down complex smart products in clear, jargon-free language so you can make informed decisions.' },
+  { n: '02', t: 'Powerful price comparisons', d: 'We scour the web for the best deals on the products you want — saving you time and money with tools that stay up to date.' },
+  { n: '03', t: 'Up-to-the-minute info', d: "Constantly researching and updating, so you're always in the know on the latest trends, releases and innovations." },
+];
+
+const H2 = 'font-display !text-[clamp(1.7rem,3.2vw,2rem)] font-extrabold leading-[1.1] tracking-[-0.02em] text-ink';
+const EYEBROW = 'text-[0.74rem] font-bold uppercase tracking-[0.16em] text-primary';
 
 export default function AboutPage() {
   return (
     <div data-testid="about-page">
-      <Hero />
-      <Mission />
-      <Vision />
-      <Community />
-      <ThankYou />
+      <section className="relative overflow-hidden pb-5 pt-16 sm:pt-[72px]">
+        <div aria-hidden className="pointer-events-none absolute -top-40 -right-[150px] z-0 h-[480px] w-[480px] rounded-full bg-[radial-gradient(circle,rgba(21,86,238,0.13),transparent_62%)]" />
+        <div className="relative z-[2] mx-auto max-w-[1366px] px-6">
+          <span className={EYEBROW}>About</span>
+          <h1 className="mt-3.5 font-display font-extrabold leading-[1.04] tracking-[-0.03em] text-ink">
+            Your tech-savvy companions in smart electronics.
+          </h1>
+          <p className="mt-[18px] max-w-[68ch] text-[1.12rem] leading-[1.6] text-ink/55">
+            {SITE.name} is more than a website — we&apos;re a team of passionate tech enthusiasts, researchers and
+            writers dedicated to making your smart-tech journey smooth and rewarding.
+          </p>
+        </div>
+      </section>
+
+      {/* who we are */}
+      <section className="mx-auto max-w-[1366px] px-6 py-[54px]">
+        <div className="grid items-center gap-[46px] lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <span className={EYEBROW}>Who we are</span>
+            <h2 className={`mt-2 ${H2}`}>The #1 trusted guide to the smart-technology universe.</h2>
+            <p className="mt-4 text-[1.05rem] leading-[1.7] text-ink/55">
+              Navigating the ever-changing landscape of smart technology can feel like a challenge — so we make it
+              simple. From the latest TVs and sound systems to security and home automation, we research, compare and
+              explain so you can buy with confidence.
+            </p>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/about/about-1-intro.svg" alt="Marketplaces converging on one product" className="w-full rounded-[24px]" />
+        </div>
+      </section>
+
+      {/* mission */}
+      <section className="mx-auto max-w-[1366px] px-6 pb-[54px]">
+        <span className={EYEBROW}>Our mission</span>
+        <h2 className={`mt-2 ${H2}`}>Simplify, Inform, Empower.</h2>
+        <div className="mt-3.5 grid gap-[22px] sm:grid-cols-3">
+          {pillars.map((p) => (
+            <div key={p.n} className="rounded-2xl border border-ink/10 bg-white p-6 transition hover:-translate-y-1.5 hover:shadow-[0_24px_44px_-26px_rgba(13,27,42,0.4)]">
+              <div className="mb-4 grid h-[42px] w-[42px] place-items-center rounded-[11px] bg-primary/10 font-display font-extrabold text-primary">{p.n}</div>
+              <h3 className="mb-2 font-display font-semibold text-ink">{p.t}</h3>
+              <p className="text-[0.92rem] leading-[1.55] text-ink/55">{p.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* vision */}
+      <section className="mx-auto max-w-[1366px] px-6 pb-[54px]">
+        <div className="grid items-center gap-10 lg:grid-cols-2">
+          <div>
+            <span className={EYEBROW}>Our vision</span>
+            <h2 className={`mt-2 ${H2}`}>The future of smart-tech shopping.</h2>
+            <p className="mt-3.5 text-[1.02rem] leading-[1.7] text-ink/55">
+              We envision a future where everyone can confidently embrace smart technology, regardless of their tech
+              knowledge — and we&apos;re working to become the leading platform and community for smart-tech shoppers
+              worldwide.
+            </p>
+          </div>
+          <SplitArt src="/about/about-2-vision.svg" alt="Future vision radar and price target" />
+        </div>
+      </section>
+
+      {/* community */}
+      <section className="mx-auto max-w-[1366px] px-6 pb-[54px]">
+        <div className="grid items-center gap-10 lg:grid-cols-2">
+          <SplitArt src="/about/about-3-community.svg" alt="Connected community network" className="lg:order-1" />
+          <div className="lg:order-2">
+            <span className={EYEBROW}>The community</span>
+            <h2 className={`mt-2 ${H2}`}>More than a source — a community.</h2>
+            <p className="mt-3.5 text-[1.02rem] leading-[1.7] text-ink/55">
+              We value your feedback and believe that together we can build the ultimate resource for smart technology.
+              Share your thoughts, ask questions, and join us. Whether you&apos;re a seasoned smart-home expert or just
+              starting out, you&apos;re welcome here.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* thank you CTA */}
+      <section className="mx-auto max-w-[1366px] px-6 pb-[54px]">
+        <div className="relative overflow-hidden rounded-3xl bg-ink px-6 py-14 text-center text-white sm:px-14">
+          <div aria-hidden className="pointer-events-none absolute left-1/2 -top-[100px] h-[300px] w-[420px] -translate-x-1/2 bg-[radial-gradient(circle,rgba(21,86,238,0.28),transparent_60%)]" />
+          <span className="relative text-[0.74rem] font-bold uppercase tracking-[0.16em] text-primary">Thank you</span>
+          <h2 className="relative mt-2.5 font-display font-extrabold tracking-[-0.02em]">Let&apos;s get smart together.</h2>
+          <div className="relative mt-7 flex flex-wrap justify-center gap-3.5">
+            <Link href="/product-comparisons" className="rounded-[11px] bg-primary px-7 py-3.5 font-display text-[0.95rem] font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary-emphasis">Browse comparisons</Link>
+            <Link href="/product-reviews" className="rounded-[11px] border border-white/[0.18] bg-white/[0.08] px-7 py-3.5 font-display text-[0.95rem] font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/[0.16]">Read reviews</Link>
+          </div>
+        </div>
+      </section>
+
+      <ValueStrip />
     </div>
   );
 }
 
-/* ---------- HERO ---------- */
-
-function Hero() {
+function SplitArt({ src, alt, className = '' }: { src: string; alt: string; className?: string }) {
   return (
-    <section className="relative overflow-hidden bg-paper">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1fr_1.2fr] lg:items-center lg:gap-16 lg:py-24">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">About</p>
-          <h1 className="mt-4 font-display text-5xl font-bold leading-[1.05] tracking-tight text-ink sm:text-6xl">
-            About Us
-          </h1>
-          <h2 className="mt-6 font-display text-2xl font-bold leading-snug text-ink sm:text-3xl">
-            About {SITE.name}: Number 1 Trusted Guide to the Smart Technology Universe
-          </h2>
-          <p className="mt-6 max-w-xl text-base leading-7 text-ink/70 sm:text-lg">
-            At {SITE.name}, we’re more than just a website — we’re your independent, tech-savvy
-            companions in the exciting world of smart electronics and home gadgets. Our team of
-            passionate tech enthusiasts, researchers, and writers is dedicated to making your smart
-            tech journey as smooth and rewarding as possible.
-          </p>
-        </div>
-        <div className="relative">
-          {/* Decorative background image (the source's about_image_bg.png) */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/about/about_image_bg.png"
-            alt=""
-            aria-hidden
-            className="mx-auto h-auto w-full max-w-md object-contain mix-blend-multiply"
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- OUR MISSION ---------- */
-
-function Mission() {
-  const pillars = [
-    {
-      title: 'Comprehensive, easy-to-digest guides',
-      body:
-        'Our in-depth articles break down the complexities of smart products — from the latest TVs and sound systems to cutting-edge security and automation. We use clear, jargon-free language so you can make informed decisions about the products that are right for you.',
-    },
-    {
-      title: 'Powerful price comparisons',
-      body:
-        'We scour the web to find the best deals on the products you want, saving you time and money. Our comparison tools are easy to use and keep you up-to-date on the latest sales and discounts.',
-    },
-    {
-      title: 'Up-to-the-minute information',
-      body:
-        'Our team is constantly researching and updating our content so you’re always in the know about the latest trends and innovations. We stay ahead of the curve, covering everything from new product releases to emerging smart-home technologies.',
-    },
-  ];
-  return (
-    <section className="bg-white py-16 sm:py-20">
-      <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[1fr_1.4fr] lg:items-start lg:gap-16">
-        <div className="lg:sticky lg:top-24">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Our mission</p>
-          <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-            Simplify, Inform, Empower.
-          </h2>
-          <p className="mt-5 max-w-md text-base leading-7 text-ink/70">
-            Navigating the ever-changing landscape of smart technology can feel like a challenge, but
-            we’re here to make it simple. Three pillars drive everything we publish.
-          </p>
-          <div className="mt-8 hidden lg:block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/about/about_left_01-al.png"
-              alt=""
-              aria-hidden
-              className="h-auto w-full max-w-xs object-contain mix-blend-multiply"
-            />
-          </div>
-        </div>
-        <ol className="space-y-6">
-          {pillars.map((p, i) => (
-            <li
-              key={p.title}
-              className="relative rounded-3xl border border-ink/10 bg-paper/50 p-6 transition hover:border-primary/40 sm:p-8"
-            >
-              <span className="absolute -left-3 -top-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary font-display text-sm font-bold text-white">
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <h3 className="font-display text-xl font-bold text-ink sm:text-2xl">{p.title}</h3>
-              <p className="mt-3 text-base leading-7 text-ink/70">{p.body}</p>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- OUR VISION ---------- */
-
-function Vision() {
-  return (
-    <section className="bg-[#101d27] py-20 text-white">
-      <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[1.3fr_1fr] lg:items-center lg:gap-16">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary/90">Our vision</p>
-          <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-            The future of smart-tech shopping.
-          </h2>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
-            We envision a future where everyone can confidently embrace smart technology, regardless of
-            their tech knowledge. We’re working towards becoming the leading platform and community for
-            smart-tech enthusiasts and shoppers worldwide.
-          </p>
-        </div>
-        <div className="relative flex justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/about/about_right_image-al.png"
-            alt=""
-            aria-hidden
-            className="h-auto w-full max-w-sm object-contain"
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- COMMUNITY ---------- */
-
-function Community() {
-  return (
-    <section className="bg-paper py-16 sm:py-20">
-      <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[1fr_1.2fr] lg:items-center lg:gap-16">
-        <div className="order-2 flex justify-center lg:order-1">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/about/about_left_02-al.png"
-            alt=""
-            aria-hidden
-            className="h-auto w-full max-w-sm object-contain mix-blend-multiply"
-          />
-        </div>
-        <div className="order-1 lg:order-2">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">The community</p>
-          <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-            More than a source — a community.
-          </h2>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-ink/70 sm:text-lg">
-            {SITE.name} is more than just a source of information — it’s a community. We value your
-            feedback and believe that together we can create the ultimate resource for smart technology.
-            Share your thoughts, ask questions, and join us as we explore the endless possibilities of
-            the smart-tech universe.
-          </p>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-ink/70 sm:text-lg">
-            Whether you’re a seasoned smart-home expert or just starting out, we welcome you to our
-            community.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- THANK YOU ---------- */
-
-function ThankYou() {
-  return (
-    <section className="bg-white py-20">
-      <div className="relative mx-auto max-w-3xl px-6 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/about/about_image_floweral.png"
-          alt=""
-          aria-hidden
-          className="mx-auto mb-6 h-12 w-auto object-contain mix-blend-multiply opacity-80"
-        />
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Thank you</p>
-        <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-          Let’s get smart together.
-        </h2>
-        <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-ink/70 sm:text-lg">
-          Thank you for choosing {SITE.name} as your trusted source for all things smart tech. We’re
-          excited to be part of your journey and look forward to helping you make the most of the
-          amazing world of smart technology.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link
-            href="/product-comparisons"
-            className="inline-flex items-center rounded-full bg-primary px-6 py-3 font-display text-sm font-bold uppercase tracking-wider text-white transition hover:bg-primary-emphasis"
-          >
-            Browse comparisons
-          </Link>
-          <Link
-            href="/product-reviews"
-            className="inline-flex items-center rounded-full border border-ink/15 px-6 py-3 font-display text-sm font-bold uppercase tracking-wider text-ink transition hover:border-primary hover:text-primary"
-          >
-            Read reviews
-          </Link>
-        </div>
-      </div>
-    </section>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} className={`w-full rounded-[24px] ${className}`} />
   );
 }

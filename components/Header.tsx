@@ -17,7 +17,7 @@ export default function Header() {
       className="sticky top-0 z-50 border-b border-ink/10 bg-white/85 backdrop-blur"
       data-testid="site-header"
     >
-      <div className="mx-auto flex h-16 max-w-[1420px] items-center justify-between gap-4 px-4 sm:h-[72px] sm:px-6">
+      <div className="mx-auto flex h-16 max-w-[1366px] items-center justify-between gap-4 px-4 sm:h-[72px] sm:px-6">
         {/* Logo */}
         <Link
           href="/"

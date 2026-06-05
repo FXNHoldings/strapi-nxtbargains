@@ -31,7 +31,7 @@ export default function CommerceProductCard({
           <img
             src={image}
             alt={product.primaryImage?.alternativeText || product.name}
-            className="h-52 w-full object-contain p-5 transition duration-500 group-hover:scale-[1.03]"
+            className="h-52 w-full object-contain p-5 mix-blend-multiply transition duration-500 group-hover:scale-[1.03]"
           />
         ) : (
           <span className="flex h-52 w-full items-center justify-center bg-muted px-6 text-center font-display text-2xl font-bold text-ink/25">

@@ -164,7 +164,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
       />
 
       <section className="bg-white py-6 sm:py-8">
-        <div className="mx-auto max-w-[1420px] px-4 sm:px-6">
+        <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
           <nav className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-ink/45" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-primary">Home</Link>
             <span>/</span>
@@ -278,7 +278,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
       </section>
 
       <section className="pb-12">
-        <div className="mx-auto max-w-[1420px] px-4 sm:px-6">
+        <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
           <ProductInfoTabs
             productId={product.id}
             productName={product.name}
@@ -299,7 +299,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
 
       {liveOffers.length >= 2 && (
         <section className="border-t border-ink/10 py-12" data-testid="live-prices">
-          <div className="mx-auto max-w-[1420px] px-4 sm:px-6">
+          <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <h2 className="font-display text-2xl font-bold text-ink">Live prices across stores</h2>
               <p className="text-xs text-ink/45">
@@ -316,7 +316,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
 
       {related.length > 0 && (
         <section className="border-t border-ink/10 bg-paper py-12" data-testid="related-products">
-          <div className="mx-auto max-w-[1420px] px-4 sm:px-6">
+          <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
             <h2 className="font-display text-2xl font-bold text-ink">Related products</h2>
             <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
               {related.slice(0, 5).map((p) => (

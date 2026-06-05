@@ -2,6 +2,8 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { listStores, type Store } from '@/lib/strapi';
 import { SITE } from '@/lib/site';
+import PageHero from '@/components/PageHero';
+import ValueStrip from '@/components/ValueStrip';
 
 export const revalidate = 300;
 
@@ -30,61 +32,57 @@ export default async function StoresPage() {
   const letters = ALPHABET.filter((l) => groups.has(l));
 
   return (
-    <main className="bg-white" data-testid="stores-page">
-      <section className="border-b border-ink/10 bg-paper">
-        <div className="mx-auto max-w-[1420px] px-4 py-12 sm:px-6">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Directory</p>
-          <h1 className="mt-2 font-display !text-[36px] font-bold leading-[1.05] text-ink sm:!text-[52px] lg:!text-[70px]">Stores &amp; Marketplaces</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-ink/60 sm:text-base">
-            Every store and marketplace we compare prices across{stores.length ? ` — ${stores.length} and counting` : ''}.
-          </p>
-        </div>
-      </section>
-
-      {/* alphabet jump-nav */}
-      <div className="sticky top-16 z-30 border-b border-ink/10 bg-white/90 backdrop-blur sm:top-[72px]">
-        <div className="mx-auto flex max-w-[1420px] flex-wrap gap-1 px-4 py-3 sm:px-6">
+    <div data-testid="stores-page">
+      <PageHero
+        eyebrow="Directory"
+        title="Stores & Marketplaces"
+        sub={`Every store and marketplace we compare prices across${stores.length ? ` — ${stores.length} and counting` : ''}.`}
+      >
+        {/* alphabet jump-nav */}
+        <div className="mt-3.5 flex flex-wrap gap-1.5">
           {ALPHABET.map((l) =>
             groups.has(l) ? (
-              <a key={l} href={`#letter-${l}`} className="flex h-8 w-8 items-center justify-center rounded text-sm font-bold text-ink transition hover:bg-primary hover:text-white">{l}</a>
+              <a key={l} href={`#letter-${l}`} className="grid h-[34px] w-[34px] place-items-center rounded-[9px] border border-ink/10 bg-white font-display text-[0.85rem] font-semibold text-ink transition hover:border-primary hover:bg-primary hover:text-white">{l}</a>
             ) : (
-              <span key={l} className="flex h-8 w-8 items-center justify-center rounded text-sm font-bold text-ink/20">{l}</span>
+              <span key={l} className="grid h-[34px] w-[34px] place-items-center rounded-[9px] font-display text-[0.85rem] font-semibold text-ink/25">{l}</span>
             ),
           )}
         </div>
-      </div>
+      </PageHero>
 
-      <div className="mx-auto max-w-[1420px] px-4 py-10 sm:px-6">
+      <section className="mx-auto max-w-[1366px] px-6 pb-[54px] pt-[18px]">
         {stores.length === 0 ? (
-          <p className="text-ink/60">No stores yet — they'll appear here as products are added.</p>
+          <p className="text-ink/60">No stores yet — they&apos;ll appear here as products are added.</p>
         ) : (
           letters.map((letter) => (
-            <section key={letter} id={`letter-${letter}`} className="scroll-mt-32 border-t border-ink/10 py-8 first:border-t-0 first:pt-0">
-              <h2 className="font-display text-2xl font-bold text-primary">{letter}</h2>
-              <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            <div key={letter} id={`letter-${letter}`} className="mt-[30px] scroll-mt-24 first:mt-0">
+              <div className="mb-[18px] border-b-2 border-ink/10 pb-2.5 font-display text-[1.3rem] font-extrabold text-primary">{letter}</div>
+              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
                 {groups.get(letter)!.map((s) => (
                   <Link
                     key={s.slug}
                     href={`/stores/${s.slug}`}
-                    className="group flex items-center gap-3 border border-ink/10 bg-white p-4 transition hover:border-primary hover:shadow-[0_8px_30px_rgba(15,23,42,0.06)]"
+                    className="flex items-center gap-3.5 rounded-[13px] border border-ink/10 bg-white p-3.5 transition hover:-translate-y-[3px] hover:border-primary hover:shadow-[0_18px_36px_-22px_rgba(13,27,42,0.4)]"
                   >
                     {s.logo ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.logo} alt={s.name} loading="lazy" referrerPolicy="no-referrer" className="h-9 w-9 shrink-0 rounded object-contain" />
+                      <img src={s.logo} alt={s.name} loading="lazy" referrerPolicy="no-referrer" className="h-[46px] w-[46px] flex-none rounded-[10px] object-contain mix-blend-multiply" />
                     ) : (
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-muted font-display text-sm font-bold text-ink/40">{s.name[0]}</span>
+                      <span className="grid h-[46px] w-[46px] flex-none place-items-center rounded-[10px] bg-muted font-display font-bold text-ink/40">{s.name[0]}</span>
                     )}
-                    <span className="min-w-0">
-                      <span className="line-clamp-1 block font-display text-sm font-bold text-ink transition group-hover:text-primary">{s.name}</span>
-                      <span className="text-xs text-ink/45">{s.productCount} product{s.productCount === 1 ? '' : 's'}</span>
-                    </span>
+                    <div className="min-w-0">
+                      <h4 className="truncate font-display text-[0.92rem] font-semibold text-ink">{s.name}</h4>
+                      <div className="text-[0.78rem] text-ink/55">{s.productCount} product{s.productCount === 1 ? '' : 's'}</div>
+                    </div>
                   </Link>
                 ))}
               </div>
-            </section>
+            </div>
           ))
         )}
-      </div>
-    </main>
+      </section>
+
+      <ValueStrip />
+    </div>
   );
 }

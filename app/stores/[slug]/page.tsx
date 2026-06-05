@@ -45,12 +45,12 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
     <main className="bg-white" data-testid={`store-${store.slug}`}>
       {/* Full-width store header */}
       <section className="border-b border-ink/10 bg-paper">
-        <div className="mx-auto max-w-[1420px] px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-[1366px] px-4 py-8 sm:px-6">
           <Link href="/stores" className="text-xs font-bold uppercase tracking-wider text-primary">← All stores</Link>
           <div className="mt-4 flex flex-wrap items-center gap-5">
             {store.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={store.logo} alt={store.name} referrerPolicy="no-referrer" className="h-16 w-16 rounded-lg border border-ink/10 bg-white object-contain p-2" />
+              <img src={store.logo} alt={store.name} referrerPolicy="no-referrer" className="h-16 w-16 rounded-lg bg-white object-contain p-2" />
             ) : (
               <span className="flex h-16 w-16 items-center justify-center rounded-lg border border-ink/10 bg-muted font-display text-2xl font-bold text-ink/40">{store.name[0]}</span>
             )}
@@ -71,7 +71,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
       </section>
 
       {/* Filters (left, 25%) + products (right, 75%). Filter UI is client-side. */}
-      <div className="mx-auto max-w-[1420px] px-4 py-10 sm:px-6">
+      <div className="mx-auto max-w-[1366px] px-4 py-10 sm:px-6">
         {products.length === 0 ? (
           <p className="text-ink/60">No products from this store yet.</p>
         ) : (

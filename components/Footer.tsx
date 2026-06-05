@@ -1,11 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { SITE, SECTIONS } from '@/lib/site';
-
-const CONTACT_EMAIL = 'hello@nxt.bargains';
-
-// Major marketplaces we compare across (global focus, not UK-specific).
-const MARKETPLACES = ['Amazon', 'eBay', 'Walmart', 'AliExpress', 'Best Buy', 'Target', 'Newegg'];
+import { SITE } from '@/lib/site';
 
 const shopLinks = [
   { href: '/products', label: 'All products' },
@@ -14,7 +9,15 @@ const shopLinks = [
   { href: '/product-comparisons', label: 'Comparisons' },
 ];
 
-const companyLinks = [
+const guideLinks = [
+  { href: '/product-comparisons', label: 'Comparisons' },
+  { href: '/product-reviews', label: 'Product Reviews' },
+  { href: '/product-roundups', label: 'Product Roundups' },
+  { href: '/how-to-guides', label: 'How-to' },
+  { href: '/top-rated-smart-electronics-devices', label: 'Top Rated' },
+];
+
+const aboutLinks = [
   { href: '/', label: 'Home' },
   { href: '/about', label: 'About Us' },
   { href: '/sitemap', label: 'Sitemap' },
@@ -22,114 +25,78 @@ const companyLinks = [
   { href: '/contact', label: 'Contact' },
 ];
 
+const MARKETPLACES = ['Amazon', 'eBay', 'Walmart', 'AliExpress', 'Best Buy', 'Target', 'Newegg'];
+
 const legalLinks = [
-  { href: '/legal/terms', label: 'Terms and Conditions' },
+  { href: '/legal/terms', label: 'Terms & Conditions' },
   { href: '/legal/privacy', label: 'Privacy Policy' },
   { href: '/legal/cookies', label: 'Cookie Policy' },
-];
-
-const valueProps: { title: string; text: string; icon: ReactNode }[] = [
-  {
-    title: 'Compare every marketplace',
-    text: 'One product, side-by-side prices from Amazon, eBay & more.',
-    icon: <><path d="M3 6h7M3 12h7M3 18h7" /><path d="M14 6h7M14 12h7M14 18h7" /></>,
-  },
-  {
-    title: 'Price history & drops',
-    text: "See an item's lowest price and buy at the right moment.",
-    icon: <><path d="M3 3v18h18" /><path d="m7 14 4-4 3 3 5-6" /></>,
-  },
-  {
-    title: 'Free, no signup',
-    text: 'Just search a product and start saving — nothing to install.',
-    icon: <><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L3 13V3h10l7.59 7.59a2 2 0 0 1 0 2.82Z" /><path d="M7.5 7.5h.01" /></>,
-  },
 ];
 
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-16 bg-ink text-white" data-testid="site-footer">
-      {/* value props */}
-      <div className="border-b border-white/10">
-        <div className="mx-auto grid max-w-7xl gap-px px-6 sm:grid-cols-3">
-          {valueProps.map((v) => (
-            <div key={v.title} className="flex items-start gap-4 py-7 sm:px-6 sm:first:pl-0">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
-                  {v.icon}
-                </svg>
+    <footer className="bg-ink pb-7 pt-[66px] text-white/70" data-testid="site-footer">
+      <div className="mx-auto max-w-[1366px] px-7">
+        {/* top: brand + columns */}
+        <div className="grid gap-11 border-b border-white/[0.13] pb-11 sm:grid-cols-2 lg:grid-cols-[1.7fr_1fr_1fr_1fr]">
+          {/* brand */}
+          <div className="sm:col-span-2 lg:col-span-1">
+            <Link href="/" className="mb-4 inline-flex items-center gap-2 font-display text-[1.3rem] font-extrabold text-white" aria-label={`${SITE.name} home`}>
+              <span className="grid h-[26px] w-[26px] place-items-center rounded-lg bg-white/[0.08]">
+                <span className="h-[11px] w-[11px] -rotate-45 rounded-full border-[2.5px] border-primary border-t-transparent" />
               </span>
-              <div>
-                <p className="font-display text-sm font-bold text-white">{v.title}</p>
-                <p className="mt-1 text-sm leading-6 text-white/55">{v.text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+              NXT<b className="font-extrabold text-primary">.Bargains</b>
+            </Link>
+            <p className="mb-[22px] max-w-[36ch] text-[0.9rem] leading-[1.6] text-white/70">
+              Compare one product across the major marketplaces, track its price history,
+              and buy at the lowest price. Never pay full price again.
+            </p>
 
-      {/* main */}
-      <div className="mx-auto grid max-w-7xl gap-12 px-6 py-14 lg:grid-cols-[45fr_20fr_25fr_10fr]">
-        {/* brand */}
-        <section>
-          <Link href="/" className="inline-flex" aria-label={`${SITE.name} home`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/nxt_bargains_logo_light.svg" alt={SITE.name} width={210} height={102} className="h-9 w-auto sm:h-10" />
-          </Link>
-          <p className="mt-6 max-w-sm text-sm leading-7 text-white/60">
-            Compare one product across the major marketplaces, track its price history,
-            and buy at the lowest price. Never pay full price again.
-          </p>
-          <div className="mt-6 flex items-center gap-3" data-testid="social-links">
-            <SocialLink href={SITE.social.facebook} label={`${SITE.name} on Facebook`}>
-              <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99h-2.5V12h2.5V9.83c0-2.47 1.47-3.84 3.73-3.84 1.08 0 2.21.19 2.21.19v2.43h-1.25c-1.23 0-1.61.76-1.61 1.55V12h2.74l-.44 2.89h-2.3v6.99A10 10 0 0 0 22 12Z" />
-            </SocialLink>
-            <SocialLink href={SITE.social.twitter} label={`${SITE.name} on X`}>
-              <path d="M18.244 2H21.5l-7.55 8.63L22.75 22h-6.96l-5.45-7.13L4.04 22H.78l8.08-9.23L1.25 2h7.13l4.93 6.52L18.244 2Zm-1.22 18h1.93L7.06 4H5.04l11.984 16Z" />
-            </SocialLink>
-            <SocialLink href="/feed.xml" label={`${SITE.name} RSS feed`}>
-              <path d="M4 4v3a13 13 0 0 1 13 13h3A16 16 0 0 0 4 4Zm0 6v3a7 7 0 0 1 7 7h3a10 10 0 0 0-10-10Zm2.25 7.25a1.75 1.75 0 1 0 .001 3.501A1.75 1.75 0 0 0 6.25 17.25Z" />
-            </SocialLink>
+            <div className="mb-6 flex gap-2.5" data-testid="social-links">
+              <SocialLink href={SITE.social?.facebook ?? 'https://www.facebook.com/nxtbargains'} label="Facebook">
+                <path d="M14 9h3V6h-3c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.5l.5-3H14V9.5c0-.3.2-.5.5-.5z" />
+              </SocialLink>
+              <SocialLink href={SITE.social?.twitter ?? 'https://x.com/nxtbargains'} label="X">
+                <path d="M17.5 4h2.7l-5.9 6.7L21 20h-5.4l-4.2-5.5L6.5 20H3.8l6.3-7.2L3 4h5.5l3.8 5L17.5 4zm-1 14.4h1.5L7.5 5.5H5.9l10.6 12.9z" />
+              </SocialLink>
+              <SocialLink href="/feed.xml" label="RSS feed">
+                <circle cx="6.2" cy="17.8" r="2.2" />
+                <path d="M4 4v3c7.2 0 13 5.8 13 13h3C20 11.2 12.8 4 4 4zm0 6v3c3.9 0 7 3.1 7 7h3c0-5.5-4.5-10-10-10z" />
+              </SocialLink>
+            </div>
+
+            <div>
+              <div className="mb-[7px] text-[0.72rem] font-bold uppercase tracking-[0.12em] text-primary">Tips &amp; partnerships</div>
+              <Link href="/contact" className="border-b border-primary/50 pb-px text-[0.92rem] font-medium text-white transition hover:text-primary">
+                hello@nxt.bargains
+              </Link>
+            </div>
           </div>
 
-          <p className="mt-7 text-xs font-bold uppercase tracking-[0.16em] text-white/40">Tips &amp; partnerships</p>
-          <a href={`mailto:${CONTACT_EMAIL}`} className="mt-2 block break-all text-sm font-semibold text-white/80 transition hover:text-accent">
-            {CONTACT_EMAIL}
-          </a>
-        </section>
-
-        <FooterColumn title="Shop" links={shopLinks} />
-        <FooterColumn
-          title="Buying guides"
-          links={SECTIONS.slice(0, 5).map((section) => ({ href: `/${section.slug}`, label: section.short }))}
-        />
-        <FooterColumn title="About" links={companyLinks} />
-      </div>
-
-      {/* marketplace strip */}
-      <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-2 px-6 py-5 text-[11px] font-bold uppercase tracking-[0.18em] text-white/40">
-          <span className="text-white/55">Comparing prices across</span>
-          {MARKETPLACES.map((m) => (
-            <span key={m} className="rounded-full border border-white/12 px-3 py-1 text-white/65">{m}</span>
-          ))}
-          <span className="rounded-full bg-primary px-3 py-1 text-white">+ more</span>
+          <FooterColumn title="Shop" links={shopLinks} />
+          <FooterColumn title="Buying guides" links={guideLinks} />
+          <FooterColumn title="About" links={aboutLinks} />
         </div>
-      </div>
 
-      {/* bottom bar */}
-      <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {year} {SITE.name}. Independent price comparison — we may earn a commission on some links.</p>
-          <ul className="flex flex-wrap gap-x-5 gap-y-2">
-            {legalLinks.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className="transition hover:text-white">{link.label}</Link>
-              </li>
+        {/* comparing prices across */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5 border-b border-white/[0.13] py-[26px]">
+          <span className="text-[0.82rem] font-semibold text-white/60">Comparing prices across</span>
+          {MARKETPLACES.map((m) => (
+            <b key={m} className="font-display text-[0.92rem] font-bold text-white/85">{m}</b>
+          ))}
+          <span className="text-[0.82rem] font-semibold text-primary">+ more</span>
+        </div>
+
+        {/* bottom */}
+        <div className="flex flex-wrap items-center justify-between gap-3.5 pt-[26px] text-[0.82rem] text-white/55">
+          <span>© {year} {SITE.name}. Independent price comparison — we may earn a commission on some links.</span>
+          <div className="flex flex-wrap gap-x-[22px] gap-y-2">
+            {legalLinks.map((l) => (
+              <Link key={l.href} href={l.href} className="transition hover:text-white">{l.label}</Link>
             ))}
-          </ul>
+          </div>
         </div>
       </div>
     </footer>
@@ -138,16 +105,14 @@ export default function Footer() {
 
 function FooterColumn({ title, links }: { title: string; links: Array<{ href: string; label: string }> }) {
   return (
-    <section>
-      <h2 className="!text-[1.1rem] font-bold capitalize text-white">{title}</h2>
-      <ul className="mt-4 space-y-3">
-        {links.map((link) => (
-          <li key={link.href}>
-            <Link href={link.href} className="text-sm text-white/70 transition hover:text-accent">{link.label}</Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <div>
+      <h5 className="mb-[18px] font-display text-[0.78rem] font-bold uppercase tracking-[0.12em] text-primary">{title}</h5>
+      {links.map((l) => (
+        <Link key={l.href + l.label} href={l.href} className="mb-[11px] block text-[0.9rem] text-white/70 transition hover:pl-[3px] hover:text-white">
+          {l.label}
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -156,12 +121,12 @@ function SocialLink({ href, label, children }: { href: string; label: string; ch
   return (
     <a
       href={href}
+      aria-label={label}
       target={external ? '_blank' : undefined}
       rel={external ? 'noopener noreferrer' : undefined}
-      aria-label={label}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 text-white/70 transition hover:border-primary hover:bg-primary hover:text-white"
+      className="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-white/10 bg-white/[0.07] text-white/80 transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary hover:text-white"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden>
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-[17px] w-[17px]" aria-hidden>
         {children}
       </svg>
     </a>
