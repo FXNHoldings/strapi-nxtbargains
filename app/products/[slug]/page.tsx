@@ -297,6 +297,23 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
         </div>
       </section>
 
+      {rows.length > 0 && (
+        <section className="border-t border-ink/10 bg-white py-12" data-testid="saved-price-comparison">
+          <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-[0.74rem] font-bold uppercase tracking-[0.18em] text-primary">Compare stores</p>
+                <h2 className="mt-2 font-display text-2xl font-bold text-ink">Current prices across merchants</h2>
+              </div>
+              <p className="max-w-xl text-sm leading-6 text-ink/55">
+                Saved merchant offers refresh daily when a confident match is found. Always confirm the final price, shipping, and condition at checkout.
+              </p>
+            </div>
+            <SavedPriceComparison rows={rows} />
+          </div>
+        </section>
+      )}
+
       {liveOffers.length >= 2 && (
         <section className="border-t border-ink/10 py-12" data-testid="live-prices">
           <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
@@ -779,6 +796,89 @@ function CompactOfferRow({ row, className = '' }: { row: CommerceOfferRow; class
       </a>
     </div>
   );
+}
+
+function SavedPriceComparison({ rows }: { rows: CommerceOfferRow[] }) {
+  const sorted = [...rows].sort((a, b) => {
+    const priceA = offerPrice(a.offer) ?? Number.POSITIVE_INFINITY;
+    const priceB = offerPrice(b.offer) ?? Number.POSITIVE_INFINITY;
+    return priceA - priceB;
+  });
+
+  return (
+    <div className="mt-7 overflow-hidden border border-ink/10 bg-white">
+      <div className="hidden grid-cols-[minmax(0,1.35fr)_120px_130px_130px_120px] border-b border-ink/10 bg-paper px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-ink/45 lg:grid">
+        <span>Store</span>
+        <span>Price</span>
+        <span>Condition</span>
+        <span>Updated</span>
+        <span className="text-right">Action</span>
+      </div>
+      {sorted.map((row, index) => (
+        <SavedPriceRow key={`${row.offer.documentId ?? row.offer.id}-${row.product.slug}`} row={row} best={index === 0} />
+      ))}
+    </div>
+  );
+}
+
+function SavedPriceRow({ row, best }: { row: CommerceOfferRow; best: boolean }) {
+  const { offer, product } = row;
+  const logo = mediaUrl(offer.merchant?.logo ?? null);
+  const price = offerPrice(offer);
+  const updated = offer.lastCheckedAt || product.updatedAt;
+  const unavailable = offer.availability === 'out_of_stock';
+
+  return (
+    <article className="grid gap-4 border-b border-ink/10 px-4 py-4 last:border-b-0 lg:grid-cols-[minmax(0,1.35fr)_120px_130px_130px_120px] lg:items-center">
+      <div className="flex min-w-0 items-start gap-3">
+        {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo} alt={`${merchantName(offer)} logo`} className="mt-0.5 h-8 w-8 shrink-0 object-contain" />
+        ) : (
+          <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center bg-muted text-sm font-bold text-ink/45">
+            {merchantName(offer).slice(0, 1)}
+          </span>
+        )}
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate font-display text-base font-bold text-ink">{merchantName(offer)}</h3>
+            {best && <span className="bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">Best price</span>}
+            {unavailable && <span className="bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-600">Out of stock</span>}
+          </div>
+          <p className="mt-1 line-clamp-1 text-sm text-ink/55">{offer.title || product.name}</p>
+        </div>
+      </div>
+
+      <div>
+        <p className="font-display text-lg font-bold text-ink">{price !== null ? formatMoney(price, offer.currency ?? 'USD') : 'Check price'}</p>
+        {offer.originalPrice && numericValue(offer.originalPrice) !== price && (
+          <p className="text-xs text-ink/40 line-through">{formatMoney(offer.originalPrice, offer.currency ?? 'USD')}</p>
+        )}
+      </div>
+
+      <div className="text-sm capitalize text-ink/65">
+        {formatOfferCondition(offer.condition)}
+      </div>
+
+      <div className="text-sm text-ink/55">
+        {updated ? timeAgo(updated) : 'Recently'}
+      </div>
+
+      <a
+        href={buyUrl(offer)}
+        target="_blank"
+        rel="nofollow sponsored noopener noreferrer"
+        className="inline-flex justify-center bg-primary px-4 py-2.5 text-xs font-bold uppercase tracking-[0.14em] text-white transition hover:bg-primary-emphasis"
+      >
+        View offer
+      </a>
+    </article>
+  );
+}
+
+function formatOfferCondition(value?: CommerceOffer['condition']) {
+  if (!value || value === 'unknown') return 'Check store';
+  return value.replace(/_/g, ' ');
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {

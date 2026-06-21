@@ -40,7 +40,7 @@ export default function Hero() {
             Price tracking · Comparison · 8+ marketplaces
           </span>
 
-          <h1 className="mt-6 font-display text-[clamp(2.6rem,5.6vw,4.3rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-ink">
+          <h1 className="mt-6 font-display !text-[3rem] font-extrabold leading-[1.02] tracking-[-0.03em] text-ink">
             Never pay{' '}
             <span className="relative whitespace-nowrap text-primary">
               full price

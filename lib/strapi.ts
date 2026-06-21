@@ -156,6 +156,7 @@ export type CommercePriceSnapshot = {
   checkedAt: string;
   source?: string | null;
   merchant?: CommerceMerchant | null;
+  product?: Pick<CommerceProduct, 'id' | 'documentId' | 'name' | 'slug' | 'updatedAt'> | null;
 };
 
 export type CommerceProduct = {
@@ -336,11 +337,28 @@ export async function listCommercePriceSnapshots(
         merchant: {
           fields: ['name', 'slug'],
         },
+        product: {
+          fields: ['name', 'slug', 'updatedAt'],
+        },
       },
       sort: ['checkedAt:asc'],
       pagination: { pageSize },
     },
     300,
+  );
+  return res.data;
+}
+
+export async function listCommerceProductsForDeals(pageSize = 120): Promise<CommerceProduct[]> {
+  const res = await strapiFetch<ListResponse<CommerceProduct>>(
+    'commerce-products',
+    {
+      filters: { productStatus: { $eq: 'active' }, tags: { $containsi: SITE_PRODUCT_TAG } },
+      populate: COMMERCE_PRODUCT_POPULATE,
+      sort: ['updatedAt:desc'],
+      pagination: { pageSize },
+    },
+    120,
   );
   return res.data;
 }

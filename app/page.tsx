@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { SITE } from '@/lib/site';
 import {
   listCommerceProducts,
+  listCommerceProductsForDeals,
   listPosts,
   listStores,
   type CommerceProduct,
@@ -21,6 +22,7 @@ import PostCard from '@/components/PostCard';
 import Hero from '@/components/Hero';
 import { type BestSeller, type Marketplace } from '@/components/BestSellerCard';
 import MarketplaceBestSellers from '@/components/MarketplaceBestSellers';
+import { listHomepageCoupons, type Coupon } from '@/lib/coupon-data';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -39,6 +41,49 @@ type Deal = {
   pct: number;
   currency: string;
 };
+
+function isGoogleShoppingUrl(url: string) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase();
+    const googleHost = host === 'googleadservices.com'
+      || host.endsWith('.googleadservices.com')
+      || host === 'shopping.google.com'
+      || host.endsWith('.shopping.google.com')
+      || /^google\.[a-z.]+$/.test(host)
+      || /\.google\.[a-z.]+$/.test(host);
+    if (!googleHost) return false;
+    return host.includes('googleadservices')
+      || host.includes('shopping.google')
+      || ['/search', '/shopping', '/aclk', '/url'].some((path) => u.pathname.startsWith(path))
+      || u.searchParams.get('tbm') === 'shop'
+      || u.searchParams.get('udm') === '28'
+      || u.searchParams.has('ibp');
+  } catch {
+    return false;
+  }
+}
+
+function marketplaceSearchUrl(marketplace: Marketplace, title: string) {
+  const q = encodeURIComponent(title.trim());
+  if (marketplace === 'amazon') return `https://www.amazon.com/s?k=${q}`;
+  if (marketplace === 'bestbuy') return `https://www.bestbuy.com/site/searchpage.jsp?st=${q}`;
+  if (marketplace === 'ebay') return `https://www.ebay.com/sch/i.html?_nkw=${q}`;
+  if (marketplace === 'target') return `https://www.target.com/s?searchTerm=${q}`;
+  if (marketplace === 'walmart') return `https://www.walmart.com/search?q=${q}`;
+  return '';
+}
+
+function geniusDestinationMap() {
+  try {
+    const p = join(process.cwd(), 'data', 'geniuslink-cache.json');
+    if (!existsSync(p)) return new Map<string, string>();
+    const cache = JSON.parse(readFileSync(p, 'utf8')) as Record<string, string>;
+    return new Map(Object.entries(cache).map(([destination, short]) => [short, destination]));
+  } catch {
+    return new Map<string, string>();
+  }
+}
 
 function toDeal(product: CommerceProduct): Deal | null {
   const offers = (product.offers ?? []).filter((o) => !o.status || o.status === 'active');
@@ -76,10 +121,12 @@ function toDeal(product: CommerceProduct): Deal | null {
 
 export default async function HomePage() {
   // Pull live data; never let a Strapi hiccup break the page.
-  const [productsRes, posts, stores] = await Promise.all([
+  const [productsRes, dealProducts, posts, stores, coupons] = await Promise.all([
     listCommerceProducts({ pageSize: 48 }).catch(() => null),
+    listCommerceProductsForDeals(120).catch(() => [] as CommerceProduct[]),
     listPosts({ pageSize: 6 }).then((r) => r.data).catch(() => [] as NxtPost[]),
     listStores().catch(() => [] as Store[]),
+    listHomepageCoupons(4).catch(() => [] as Coupon[]),
   ]);
 
   const products = productsRes?.data ?? [];
@@ -93,9 +140,9 @@ export default async function HomePage() {
       stores.find((s) => { const sn = normStore(s.name); return sn.includes(n) || n.includes(sn); });
     return { name, logo: match?.logo ?? null };
   });
-  const deals = products.map(toDeal).filter((d): d is Deal => d !== null);
-  const priceDrops = deals.filter((d) => d.pct > 0).sort((a, b) => b.pct - a.pct).slice(0, 5);
-  const trending = products.slice(0, 5);
+  const deals = dealProducts.map(toDeal).filter((d): d is Deal => d !== null);
+  const priceDrops = deals.filter((d) => d.pct > 0).sort((a, b) => b.pct - a.pct).slice(0, 6);
+  const trending = products.slice(0, 6);
 
   // Best Sellers — one daily JSON cache per marketplace (scripts/fetch-*.mjs).
   const MARKETPLACE_FILES: { key: Marketplace; file: string }[] = [
@@ -105,6 +152,7 @@ export default async function HomePage() {
     { key: 'target', file: 'best-sellers-target.json' },
     { key: 'bestbuy', file: 'best-sellers-bestbuy.json' },
   ];
+  const geniusDestinations = geniusDestinationMap();
   const bestSellerGroups = MARKETPLACE_FILES.map(({ key, file }) => {
     try {
       const p = join(process.cwd(), 'data', file);
@@ -112,7 +160,8 @@ export default async function HomePage() {
       const items = ((JSON.parse(readFileSync(p, 'utf8')).items ?? []) as BestSeller[]).map((it) => ({
         ...it,
         marketplace: key,
-      }));
+        url: isGoogleShoppingUrl(geniusDestinations.get(it.url) ?? it.url) ? marketplaceSearchUrl(key, it.title) : it.url,
+      })).filter((it) => Boolean(it.url));
       return { key, items };
     } catch {
       return { key, items: [] as BestSeller[] };
@@ -158,8 +207,8 @@ export default async function HomePage() {
       {priceDrops.length >= 3 && (
         <section className="py-14 sm:py-[72px]" data-testid="home-price-drops">
           <div className="mx-auto max-w-[1366px] px-6">
-            <SectionHead eyebrow="● Live now" title="Today's biggest price drops" intro="The steepest discounts we're tracking across marketplaces right now." cta={{ href: '/products', label: 'All products' }} />
-            <div className="mt-9 grid grid-cols-2 gap-[18px] sm:grid-cols-3 lg:grid-cols-5">
+            <SectionHead eyebrow="● Live now" title="This week's biggest price drop" intro="The steepest discount we're tracking across marketplaces this week." cta={{ href: '/products', label: 'All products' }} />
+            <div className="mt-9 grid grid-cols-2 gap-[18px] sm:grid-cols-3 lg:grid-cols-6">
               {priceDrops.map((d) => <DealCard key={d.product.id} deal={d} />)}
             </div>
           </div>
@@ -181,7 +230,7 @@ export default async function HomePage() {
         <section className="pb-14 sm:pb-[72px]" data-testid="home-trending">
           <div className="mx-auto max-w-[1366px] px-6">
             <SectionHead eyebrow="Most compared" title="Trending products" intro="Popular picks shoppers are comparing across Amazon, eBay and more." cta={{ href: '/products', label: 'Browse all' }} />
-            <div className="mt-9 grid grid-cols-2 gap-[18px] sm:grid-cols-3 lg:grid-cols-5">
+            <div className="mt-9 grid grid-cols-2 gap-[18px] sm:grid-cols-3 lg:grid-cols-6">
               {trending.map((p) => <TrendingCard key={p.id} product={p} />)}
             </div>
           </div>
@@ -190,22 +239,48 @@ export default async function HomePage() {
 
       {/* ---------- BUYING GUIDES & REVIEWS ---------- */}
       {posts.length > 0 && (
-        <section className="pb-14 sm:pb-[72px]" data-testid="home-guides">
+        <section className="bg-[#f8fafc] py-14 sm:py-[72px]" data-testid="home-guides">
           <div className="mx-auto max-w-[1366px] px-6">
             <SectionHead eyebrow="Read first" title="Buying guides & reviews" intro="Honest comparisons and reviews to help you buy with confidence." cta={{ href: '/deals', label: 'All guides' }} />
-            <div className="mt-9 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-              <PostCard post={posts[0]} variant="feature" thumbBg="bg-white" />
-              <div className="flex flex-col gap-3">
-                {posts.slice(1, 5).map((post) => (
-                  <PostCard key={post.id} post={post} variant="compact" thumbBg="bg-white" />
+            <div className="mt-9 grid items-start gap-5 lg:grid-cols-[1.18fr_0.82fr]">
+              <div className="h-fit rounded-lg border border-ink/10 bg-white p-4 pb-[26px] shadow-[0_18px_44px_-34px_rgba(13,27,42,0.45)] sm:p-5 sm:pb-[30px]">
+                <PostCard post={posts[0]} variant="feature" thumbBg="bg-white" />
+              </div>
+              <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                {posts.slice(1, 3).map((post) => (
+                  <div key={post.id} className="guide-side-card h-fit rounded-lg border border-ink/10 bg-white p-3 shadow-[0_18px_44px_-36px_rgba(13,27,42,0.38)]">
+                    <PostCard post={post} variant="tile" thumbBg="bg-white" />
+                  </div>
                 ))}
               </div>
+            </div>
+            {posts.length > 3 && (
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                {posts.slice(3, 6).map((post) => (
+                  <div key={post.id} className="rounded-lg border border-ink/10 bg-white p-4">
+                    <PostCard post={post} variant="compact" thumbBg="bg-white" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ---------- TODAY'S BEST COUPON CODES ---------- */}
+      {coupons.length > 0 && (
+        <section className="pb-14 sm:pb-[72px]" data-testid="home-coupons">
+          <div className="mx-auto max-w-[1366px] px-6">
+            <SectionHead eyebrow="Coupon codes" title="Today's best coupon codes" intro="Quick savings from the same coupon feed used on the coupons page." cta={{ href: '/coupons', label: 'All coupons' }} />
+            <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {coupons.map((coupon) => (
+                <CouponCodeCard key={`${coupon.store}-${coupon.code ?? coupon.title}`} coupon={coupon} />
+              ))}
             </div>
           </div>
         </section>
       )}
 
-      <HowItWorks />
       <FinalCta />
     </div>
   );
@@ -227,7 +302,7 @@ function SectionHead({
     <div className="flex flex-wrap items-end justify-between gap-5">
       <div className="max-w-[52ch]">
         <p className="text-[0.74rem] font-bold uppercase tracking-[0.16em] text-primary">{eyebrow}</p>
-        <h2 className="mt-2 font-display !text-[clamp(1.7rem,3.2vw,2rem)] font-extrabold leading-[1.08] tracking-[-0.02em] text-ink">{title}</h2>
+        <h2 className="mt-2 font-display !text-[clamp(1.35rem,2.4vw,1.65rem)] font-extrabold leading-[1.12] tracking-[-0.02em] text-ink">{title}</h2>
         {intro && <p className="mt-2 text-[0.98rem] leading-relaxed text-ink/55">{intro}</p>}
       </div>
       {cta && (
@@ -243,15 +318,15 @@ function SectionHead({
 function DealCard({ deal }: { deal: Deal }) {
   return (
     <Link href={deal.href} className="group flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white transition hover:-translate-y-1.5 hover:shadow-[0_26px_46px_-26px_rgba(13,27,42,0.42)]" data-testid={`pricedrop-${deal.product.slug}`}>
-      <div className="relative grid aspect-square place-items-center bg-white p-5">
+      <div className="price-drop-image-box relative grid aspect-square w-full place-items-center overflow-hidden bg-white p-4 sm:p-5">
         {deal.pct > 0 && (
-          <span className="absolute left-2.5 top-2.5 rounded-[7px] bg-primary px-[9px] py-1 font-display text-[0.74rem] font-bold text-white">-{deal.pct}%</span>
+          <span className="absolute left-2.5 top-2.5 z-10 rounded-[7px] bg-primary px-[9px] py-1 font-display text-[0.74rem] font-bold text-white">-{deal.pct}%</span>
         )}
         {deal.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={deal.image} alt={deal.name} className="h-full w-full object-contain mix-blend-multiply transition duration-500 group-hover:scale-[1.04]" />
+          <img src={deal.image} alt={deal.name} className="price-drop-image block h-full w-full object-contain mix-blend-multiply transition duration-500 group-hover:scale-[1.04]" />
         ) : (
-          <span className="font-display text-xl font-bold text-ink/25">NXT</span>
+          <span className="flex h-full w-full items-center justify-center font-display text-xl font-bold text-ink/25">NXT</span>
         )}
       </div>
       <div className="px-[15px] pb-4 pt-3.5">
@@ -298,6 +373,42 @@ function TrendingCard({ product }: { product: CommerceProduct }) {
       </div>
     </div>
   );
+}
+
+/* ------------------------------------------------------------- Coupon card */
+function CouponCodeCard({ coupon }: { coupon: Coupon }) {
+  const title = expandedCouponTitle(coupon.title);
+
+  return (
+    <article className="group flex h-full flex-col rounded-lg border border-ink/10 bg-white transition hover:-translate-y-1 hover:border-primary hover:shadow-[0_22px_42px_-30px_rgba(13,27,42,0.48)]">
+      <div className="flex items-center justify-between gap-3 border-b border-ink/10 p-4">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded bg-primary text-white">
+          <span className="font-display text-sm font-extrabold">{coupon.store.slice(0, 2).toUpperCase()}</span>
+        </div>
+        <span className="rounded bg-[#e9f7ef] px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#16794a]">
+          {coupon.type}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <p className="text-[0.72rem] font-bold uppercase tracking-[0.12em] text-primary">{coupon.store}</p>
+        <h3 className="mt-2 font-display text-[1.25rem] font-extrabold leading-tight text-ink">{coupon.discount}</h3>
+        <p className="mt-3 line-clamp-3 text-[0.88rem] leading-6 text-ink/65">{title}</p>
+        <div className="mt-4 rounded border border-dashed border-ink/20 bg-paper px-3 py-2">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink/45">Code</p>
+          <p className="mt-1 font-display text-[0.98rem] font-bold text-ink">{coupon.code ?? 'No code needed'}</p>
+        </div>
+        <Link href={coupon.href} className="mt-4 inline-flex w-full items-center justify-center rounded bg-primary px-4 py-2.5 text-[0.78rem] font-bold uppercase tracking-[0.1em] text-white transition hover:bg-primary-emphasis">
+          View offer
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function expandedCouponTitle(title: string) {
+  return title.trim().toLowerCase() === "father's day sale"
+    ? "Father's Day Sale savings on gifts, gadgets, tools, style, home essentials, and more."
+    : title;
 }
 
 /* --------------------------------------------------------------- How it works */

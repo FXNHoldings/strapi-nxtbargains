@@ -4,11 +4,11 @@ import { SITE } from '@/lib/site';
 import MobileNav from './MobileNav';
 
 const NAV = [
-  { href: '/deals', label: 'Deals' },
+  { href: '/coupons', label: 'Coupons' },
+  { href: '/best-deals', label: 'Best Deals' },
+  { href: '/price-drops', label: 'Price Drops' },
   { href: '/products', label: 'Products' },
   { href: '/stores', label: 'Stores' },
-  { href: '/about', label: 'About' },
-  { href: '/contact', label: 'Contact' },
 ];
 
 export default function Header() {
@@ -17,7 +17,7 @@ export default function Header() {
       className="sticky top-0 z-50 border-b border-ink/10 bg-white/85 backdrop-blur"
       data-testid="site-header"
     >
-      <div className="mx-auto flex h-16 max-w-[1366px] items-center justify-between gap-4 px-4 sm:h-[72px] sm:px-6">
+      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:h-[84px] sm:px-6">
         {/* Logo */}
         <Link
           href="/"
@@ -31,7 +31,7 @@ export default function Header() {
             width={450}
             height={218}
             priority
-            className="h-9 w-auto sm:h-10"
+            className="h-9 w-auto sm:h-12"
           />
         </Link>
 
@@ -41,12 +41,12 @@ export default function Header() {
           aria-label="Primary"
           data-testid="primary-nav"
         >
-          <ul className="flex items-center gap-1 font-display text-base font-semibold tracking-[0.04em]">
+          <ul className="flex items-center gap-1 font-display text-[15px] font-semibold tracking-[0.2px]">
             {NAV.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="inline-flex items-center rounded-lg px-3 py-2 font-display font-semibold text-ink/75 transition hover:bg-ink/[0.04] hover:text-ink"
+                  className="inline-flex items-center rounded-lg px-3 py-2 font-display text-[15px] font-semibold tracking-[0.2px] text-[#111111] transition hover:bg-ink/[0.04] hover:text-[#111111]"
                   data-testid={`nav-${item.label.toLowerCase()}`}
                 >
                   {item.label}

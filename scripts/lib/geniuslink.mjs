@@ -15,6 +15,7 @@ import { dirname, join } from 'node:path';
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url)))); // scripts/lib -> root
 const CACHE_FILE = join(ROOT, 'data', 'geniuslink-cache.json');
+const REQUEST_TIMEOUT_MS = 15000;
 
 let cache = null;
 let dirty = false;
@@ -33,9 +34,13 @@ export async function geniusWrap(url) {
   const c = load();
   if (c[url]) return c[url];
   const domain = process.env.GENIUSLINK_DOMAIN || 'geni.us';
+  let timeout;
   try {
+    const controller = new AbortController();
+    timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     const res = await fetch('https://api.geni.us/v3/shorturls', {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'X-Api-Key': process.env.GENIUSLINK_API_KEY,
         'X-Api-Secret': process.env.GENIUSLINK_API_SECRET,
@@ -49,6 +54,7 @@ export async function geniusWrap(url) {
         linkCreatorSetting: 'Simple',
       }),
     });
+    clearTimeout(timeout);
     if (!res.ok) return url;
     const code = (await res.json())?.shortUrl?.code;
     if (!code) return url;
@@ -58,6 +64,8 @@ export async function geniusWrap(url) {
     return short;
   } catch {
     return url;
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 

@@ -5,6 +5,7 @@ import { SITE } from '@/lib/site';
 const shopLinks = [
   { href: '/products', label: 'All products' },
   { href: '/deals', label: "Today's deals" },
+  { href: '/coupons', label: 'Coupons & promo codes' },
   { href: '/search', label: 'Search & compare' },
   { href: '/product-comparisons', label: 'Comparisons' },
 ];

@@ -13,7 +13,7 @@ export default function MarketplaceBestSellers({ groups }: { groups: Group[] }) 
   return (
     <div>
       {/* tabs */}
-      <div className="mb-6 flex flex-wrap gap-2" role="tablist" aria-label="Marketplace">
+      <div className="mb-6 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible" role="tablist" aria-label="Marketplace">
         {groups.map((g) => (
           <button
             key={g.key}
@@ -21,10 +21,10 @@ export default function MarketplaceBestSellers({ groups }: { groups: Group[] }) 
             role="tab"
             aria-selected={active === g.key}
             onClick={() => setActive(g.key)}
-            className={`rounded-full border px-[18px] py-[9px] font-display text-[0.88rem] font-semibold transition ${
+            className={`best-seller-tab shrink-0 border bg-white px-4 py-2 font-display text-[0.78rem] font-bold leading-none transition hover:border-[#0046be] hover:text-[#0046be] sm:px-[18px] sm:text-[0.82rem] ${
               active === g.key
-                ? 'border-ink bg-ink text-white'
-                : 'border-ink/10 bg-white text-ink/55 hover:border-primary hover:text-primary'
+                ? 'border-[#0046be] text-[#0046be] shadow-[inset_0_0_0_1px_#0046be]'
+                : 'border-[#c5cbd5] text-ink hover:bg-white'
             }`}
           >
             {MARKETPLACE_LABEL[g.key]}
@@ -45,9 +45,9 @@ export default function MarketplaceBestSellers({ groups }: { groups: Group[] }) 
             <span className="w-[30px] shrink-0 font-display text-[1.05rem] font-extrabold text-primary">{i + 1}</span>
             {it.image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={it.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-[46px] w-[46px] shrink-0 rounded-[9px] object-contain mix-blend-multiply" />
+              <img src={it.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-[64px] w-[64px] shrink-0 rounded-[9px] object-contain mix-blend-multiply" />
             ) : (
-              <span className="h-[46px] w-[46px] shrink-0 rounded-[9px] bg-muted" />
+              <span className="h-[64px] w-[64px] shrink-0 rounded-[9px] bg-muted" />
             )}
             <span className="min-w-0 flex-1">
               <span className="line-clamp-1 block text-[0.85rem] text-ink transition group-hover:text-primary">{it.title}</span>

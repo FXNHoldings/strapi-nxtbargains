@@ -36,6 +36,7 @@ export default async function StoresPage() {
       <PageHero
         eyebrow="Directory"
         title="Stores & Marketplaces"
+        titleClassName="text-[2rem]"
         sub={`Every store and marketplace we compare prices across${stores.length ? ` — ${stores.length} and counting` : ''}.`}
       >
         {/* alphabet jump-nav */}
