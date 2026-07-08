@@ -1,0 +1,219 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+export type CouponStore = {
+  id: number;
+  name: string;
+  url: string;
+  domain: string;
+  logo: string;
+  country: string;
+};
+
+export type CouponStoreCache = {
+  source?: string;
+  capturedAt?: string;
+  total?: number;
+  pageSize?: number;
+  pagesFetched?: number;
+  stores: CouponStore[];
+};
+
+type HighIntentStore = {
+  slug: string;
+  storeId: number;
+  label?: string;
+  status?: string;
+};
+
+type HighIntentStoreCache = {
+  stores?: HighIntentStore[];
+};
+
+const CACHE_FILE = join(process.cwd(), 'data', 'coupon-stores.json');
+const HIGH_INTENT_FILE = join(process.cwd(), 'data', 'high-intent-coupon-stores.json');
+const KNOWN_STORE_DOMAINS: Array<[RegExp, string]> = [
+  [/amazon/, 'amazon.com'],
+  [/ebay/, 'ebay.com'],
+  [/walmart/, 'walmart.com'],
+  [/newegg/, 'newegg.com'],
+];
+
+export function listCouponStores(): CouponStoreCache {
+  if (!existsSync(CACHE_FILE)) return { stores: [] };
+  try {
+    const parsed = JSON.parse(readFileSync(CACHE_FILE, 'utf8')) as CouponStoreCache;
+    return { ...parsed, stores: Array.isArray(parsed.stores) ? parsed.stores : [] };
+  } catch {
+    return { stores: [] };
+  }
+}
+
+export function findCouponStore(id: string) {
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId)) return null;
+  return listCouponStores().stores.find((store) => store.id === numericId) ?? null;
+}
+
+export function couponStoreSlug(name: string) {
+  return name
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export function couponStorePublicSlug(store: Pick<CouponStore, 'name' | 'domain' | 'url'>) {
+  const domain = store.domain || domainFromUrl(store.url);
+  const base = domain.split('.')[0]?.toLowerCase();
+  const nameSlug = couponStoreSlug(store.name);
+  if (base && nameSlug === `${base}-com`) return base;
+  return nameSlug;
+}
+
+export function couponStoreCanonicalSlug(store: Pick<CouponStore, 'id' | 'name' | 'domain' | 'url'>) {
+  return highIntentStoreAliases().find((alias) => alias.storeId === store.id)?.slug ?? couponStorePublicSlug(store);
+}
+
+export function findCouponStoreBySlug(slug: string) {
+  const normalized = slug.toLowerCase();
+  const stores = listCouponStores().stores;
+  const alias = highIntentStoreAliases().find((store) => store.slug === normalized);
+  if (alias) {
+    const match = stores.find((store) => store.id === alias.storeId);
+    if (match) return match;
+  }
+
+  return stores
+    .filter((store) => couponStorePublicSlug(store) === normalized || couponStoreSlug(store.name) === normalized)
+    .sort((a, b) => publicSlugScore(a, normalized) - publicSlugScore(b, normalized))[0] ?? null;
+}
+
+export function highIntentStoreAliases() {
+  if (!existsSync(HIGH_INTENT_FILE)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(HIGH_INTENT_FILE, 'utf8')) as HighIntentStoreCache;
+    return (Array.isArray(parsed.stores) ? parsed.stores : [])
+      .filter((store) => store.status === 'active' && store.slug && Number.isFinite(store.storeId));
+  } catch {
+    return [];
+  }
+}
+
+export function relatedCouponStores(store: CouponStore, limit = 6) {
+  const category = storeCategory(store);
+  return listCouponStores().stores
+    .filter((candidate) => candidate.id !== store.id && storeCategory(candidate) === category)
+    .slice(0, limit);
+}
+
+function publicSlugScore(store: Pick<CouponStore, 'name' | 'domain' | 'url'>, slug: string) {
+  const domain = store.domain || domainFromUrl(store.url);
+  const base = domain.split('.')[0]?.toLowerCase();
+  if (base === slug && /^www\./i.test(hostnameFromUrl(store.url))) return 0;
+  if (base === slug && couponStorePublicSlug(store) === slug) return 1;
+  if (couponStoreSlug(store.name) === slug) return 2;
+  return 3;
+}
+
+function hostnameFromUrl(value: string) {
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return '';
+  }
+}
+
+export function storeSearchText(store: CouponStore) {
+  return `${store.name} ${store.domain} ${store.country} ${storeCategory(store)}`.toLowerCase();
+}
+
+export function countryName(code: string) {
+  if (!code) return 'Global';
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code.toUpperCase()) || code;
+  } catch {
+    return code;
+  }
+}
+
+export function storeLogoUrl(store: Pick<CouponStore, 'name' | 'logo' | 'domain' | 'url'>) {
+  const domain = knownStoreDomain(store.name) || store.domain || domainFromUrl(store.url);
+  if (domain) return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
+  if (store.logo) return store.logo;
+  return '';
+}
+
+function knownStoreDomain(name: string) {
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return KNOWN_STORE_DOMAINS.find(([pattern]) => pattern.test(normalized))?.[1] ?? '';
+}
+
+export function storeCategory(store: Pick<CouponStore, 'name' | 'domain' | 'url'>) {
+  const text = `${store.name} ${store.domain} ${store.url}`.toLowerCase();
+  const rules: Array<[string, RegExp]> = [
+    ['Electronics', /tech|electronic|computer|pc|laptop|phone|mobile|camera|audio|gadget|newegg|samsung|lenovo|dell|hp|apple|microsoft/],
+    ['Fashion', /fashion|clothing|apparel|shoe|sneaker|dress|wear|jacket|watch|style|boutique|nike|adidas/],
+    ['Home and Garden', /home|garden|furniture|decor|mattress|bedding|kitchen|appliance|lighting|dyson|wayfair/],
+    ['Beauty and Health', /beauty|skin|cosmetic|makeup|hair|health|wellness|vitamin|pharmacy|derma|spa/],
+    ['Travel', /travel|hotel|flight|vacation|trip|booking|cruise|airline|luggage|resort/],
+    ['Food and Grocery', /food|grocery|wine|coffee|tea|restaurant|meal|snack|drink|kitchen/],
+    ['Sports and Outdoors', /sport|outdoor|fitness|bike|camp|golf|hiking|run|yoga|gym/],
+    ['Automotive', /auto|car|motor|tire|truck|vehicle|parts|garage/],
+    ['Baby and Kids', /baby|kid|toy|stroller|children|child|nursery/],
+    ['Pets', /pet|dog|cat|aquarium|chewy/],
+    ['Office and Business', /office|business|print|supply|software|saas|hosting|domain/],
+    ['Gaming', /game|gaming|xbox|playstation|nintendo|steam/],
+    ['Jewelry', /jewel|diamond|ring|gold|silver/],
+    ['Finance', /finance|bank|credit|loan|card|money|insurance/],
+    ['Education', /course|learn|school|education|book|training/],
+  ];
+  return rules.find(([, pattern]) => pattern.test(text))?.[0] ?? 'General';
+}
+
+function domainFromUrl(url: string) {
+  if (!url) return '';
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+export async function searchCouponStoresRemote(keyword: string, page = 1): Promise<CouponStoreCache> {
+  const host = process.env.RAPIDAPI_PROMO_CODES_HOST || 'get-promo-codes.p.rapidapi.com';
+  const key = process.env.RAPIDAPI_KEY;
+  if (!key || !keyword.trim()) return { stores: [] };
+
+  const res = await fetch(
+    `https://${host}/data/get-stores/?page=${page}&keyword=${encodeURIComponent(keyword.trim())}`,
+    {
+      headers: {
+        'x-rapidapi-host': host,
+        'x-rapidapi-key': key,
+      },
+      next: { revalidate: 86400 },
+    },
+  );
+  if (!res.ok) return { stores: [] };
+  const json = await res.json();
+  const stores = (Array.isArray(json?.data) ? json.data : [])
+    .map((record: Record<string, unknown>) => ({
+      id: Number(record.store_id ?? record.id),
+      name: String(record.store_name ?? record.name ?? '').trim(),
+      url: String(record.url ?? '').trim(),
+      domain: String(record.domain ?? '').trim(),
+      logo: String(record.logo ?? '').trim(),
+      country: String(record.country ?? '').trim(),
+    }))
+    .filter((store: CouponStore) => store.id && store.name);
+
+  return {
+    source: 'rapidapi:get-promo-codes:keyword',
+    total: Number(json?.total ?? stores.length),
+    pageSize: 100,
+    pagesFetched: page,
+    stores,
+  };
+}

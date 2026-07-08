@@ -38,24 +38,24 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-ink pb-7 pt-[66px] text-white/70" data-testid="site-footer">
-      <div className="mx-auto max-w-[1366px] px-7">
+    <footer className="bg-ink py-12 text-sm text-white/70" data-testid="site-footer">
+      <div className="mx-auto max-w-7xl px-6">
         {/* top: brand + columns */}
-        <div className="grid gap-11 border-b border-white/[0.13] pb-11 sm:grid-cols-2 lg:grid-cols-[1.7fr_1fr_1fr_1fr]">
+        <div className="grid gap-8 border-b border-white/[0.13] pb-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           {/* brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="mb-4 inline-flex items-center gap-2 font-display text-[1.3rem] font-extrabold text-white" aria-label={`${SITE.name} home`}>
-              <span className="grid h-[26px] w-[26px] place-items-center rounded-lg bg-white/[0.08]">
-                <span className="h-[11px] w-[11px] -rotate-45 rounded-full border-[2.5px] border-primary border-t-transparent" />
+            <Link href="/" className="mb-4 inline-flex items-center gap-2 font-display text-xl font-extrabold text-white" aria-label={`${SITE.name} home`}>
+              <span className="grid h-6 w-6 place-items-center rounded bg-white/[0.08]">
+                <span className="h-2.5 w-2.5 -rotate-45 rounded-full border-2 border-primary border-t-transparent" />
               </span>
               NXT<b className="font-extrabold text-primary">.Bargains</b>
             </Link>
-            <p className="mb-[22px] max-w-[36ch] text-[0.9rem] leading-[1.6] text-white/70">
+            <p className="mb-5 max-w-sm text-sm leading-6 text-white/70">
               Compare one product across the major marketplaces, track its price history,
               and buy at the lowest price. Never pay full price again.
             </p>
 
-            <div className="mb-6 flex gap-2.5" data-testid="social-links">
+            <div className="mb-5 flex gap-2" data-testid="social-links">
               <SocialLink href={SITE.social?.facebook ?? 'https://www.facebook.com/nxtbargains'} label="Facebook">
                 <path d="M14 9h3V6h-3c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.5l.5-3H14V9.5c0-.3.2-.5.5-.5z" />
               </SocialLink>
@@ -69,8 +69,8 @@ export default function Footer() {
             </div>
 
             <div>
-              <div className="mb-[7px] text-[0.72rem] font-bold uppercase tracking-[0.12em] text-primary">Tips &amp; partnerships</div>
-              <Link href="/contact" className="border-b border-primary/50 pb-px text-[0.92rem] font-medium text-white transition hover:text-primary">
+              <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-primary">Tips &amp; partnerships</div>
+              <Link href="/contact" className="border-b border-primary/50 pb-px text-sm font-medium text-white transition hover:text-primary">
                 hello@nxt.bargains
               </Link>
             </div>
@@ -82,18 +82,18 @@ export default function Footer() {
         </div>
 
         {/* comparing prices across */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5 border-b border-white/[0.13] py-[26px]">
-          <span className="text-[0.82rem] font-semibold text-white/60">Comparing prices across</span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/[0.13] py-6">
+          <span className="text-sm font-semibold text-white/60">Comparing prices across</span>
           {MARKETPLACES.map((m) => (
-            <b key={m} className="font-display text-[0.92rem] font-bold text-white/85">{m}</b>
+            <b key={m} className="font-display text-sm font-bold text-white/85">{m}</b>
           ))}
-          <span className="text-[0.82rem] font-semibold text-primary">+ more</span>
+          <span className="text-sm font-semibold text-primary">+ more</span>
         </div>
 
         {/* bottom */}
-        <div className="flex flex-wrap items-center justify-between gap-3.5 pt-[26px] text-[0.82rem] text-white/55">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-6 text-xs text-white/55 sm:text-sm">
           <span>© {year} {SITE.name}. Independent price comparison — we may earn a commission on some links.</span>
-          <div className="flex flex-wrap gap-x-[22px] gap-y-2">
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
             {legalLinks.map((l) => (
               <Link key={l.href} href={l.href} className="transition hover:text-white">{l.label}</Link>
             ))}
@@ -107,9 +107,9 @@ export default function Footer() {
 function FooterColumn({ title, links }: { title: string; links: Array<{ href: string; label: string }> }) {
   return (
     <div>
-      <h5 className="mb-[18px] font-display text-[0.78rem] font-bold uppercase tracking-[0.12em] text-primary">{title}</h5>
+      <h5 className="mb-4 font-display text-xs font-bold uppercase tracking-wide text-primary">{title}</h5>
       {links.map((l) => (
-        <Link key={l.href + l.label} href={l.href} className="mb-[11px] block text-[0.9rem] text-white/70 transition hover:pl-[3px] hover:text-white">
+        <Link key={l.href + l.label} href={l.href} className="mb-2.5 block text-sm text-white/70 transition hover:pl-1 hover:text-white">
           {l.label}
         </Link>
       ))}
@@ -125,9 +125,9 @@ function SocialLink({ href, label, children }: { href: string; label: string; ch
       aria-label={label}
       target={external ? '_blank' : undefined}
       rel={external ? 'noopener noreferrer' : undefined}
-      className="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-white/10 bg-white/[0.07] text-white/80 transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary hover:text-white"
+      className="grid h-9 w-9 place-items-center rounded border border-white/10 bg-white/[0.07] text-white/80 transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary hover:text-white"
     >
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-[17px] w-[17px]" aria-hidden>
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden>
         {children}
       </svg>
     </a>

@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { SITE } from '@/lib/site';
-
-const COUPON_REVALIDATE_SECONDS = 86400;
 
 export const revalidate = 86400;
 
@@ -15,6 +15,11 @@ export const metadata: Metadata = {
 };
 
 type ApiRecord = Record<string, unknown>;
+
+type AmazonCouponCache = {
+  capturedAt?: string;
+  data?: unknown;
+};
 
 type AmazonCoupon = {
   asin: string;
@@ -33,28 +38,14 @@ type AmazonCoupon = {
   postedAt?: string;
 };
 
-const AMAZON_DEALS_HOST = process.env.RAPIDAPI_AMAZON_DEALS_HOST || 'amazon-promo-codes-and-deals.p.rapidapi.com';
-const AMAZON_DEALS_PATH =
-  process.env.RAPIDAPI_AMAZON_DEALS_PATH ||
-  '/deals.php?limit=20&offset=0&merchant=Amazon&condition=New';
+const AMAZON_COUPONS_CACHE = join(process.cwd(), 'data', 'amazon-coupons.json');
 
-async function fetchAmazonDeals(): Promise<unknown | null> {
-  const key = process.env.RAPIDAPI_KEY;
-  if (!key) return null;
-
+function readAmazonCouponCache(): AmazonCouponCache {
   try {
-    const res = await fetch(`https://${AMAZON_DEALS_HOST}${AMAZON_DEALS_PATH}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'x-rapidapi-host': AMAZON_DEALS_HOST,
-        'x-rapidapi-key': key,
-      },
-      next: { revalidate: COUPON_REVALIDATE_SECONDS },
-    });
-    if (!res.ok) return null;
-    return res.json();
+    if (!existsSync(AMAZON_COUPONS_CACHE)) return {};
+    return JSON.parse(readFileSync(AMAZON_COUPONS_CACHE, 'utf8')) as AmazonCouponCache;
   } catch {
-    return null;
+    return {};
   }
 }
 
@@ -117,7 +108,7 @@ function mapAmazonCoupon(record: ApiRecord): AmazonCoupon | null {
 }
 
 async function listAmazonCoupons(): Promise<AmazonCoupon[]> {
-  const data = await fetchAmazonDeals();
+  const data = readAmazonCouponCache().data;
   const seen = new Set<string>();
   return recordsFrom(data)
     .map(mapAmazonCoupon)
@@ -132,6 +123,7 @@ async function listAmazonCoupons(): Promise<AmazonCoupon[]> {
 }
 
 export default async function AmazonCouponsPage() {
+  const cache = readAmazonCouponCache();
   const coupons = await listAmazonCoupons();
   const liveCodes = coupons.filter((coupon) => coupon.code).length;
   const liveDeals = coupons.length;
@@ -140,7 +132,7 @@ export default async function AmazonCouponsPage() {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date());
+  }).format(cache.capturedAt ? new Date(cache.capturedAt) : new Date());
   const pageJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
@@ -250,7 +242,7 @@ export default async function AmazonCouponsPage() {
                 <div className="mt-8 border border-ink/10 bg-white p-8">
                   <h2 className="font-display text-2xl font-bold text-ink">No Amazon coupons available right now.</h2>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-ink/60">
-                    The Amazon API returned no matching deals for the current filters. The page will refresh again on the next daily revalidation.
+                    No matching Amazon deals are available for the current filters. The page will refresh again on the next daily update.
                   </p>
                 </div>
               )}
