@@ -10,19 +10,25 @@ export default function CouponLottie() {
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
-    const animation: AnimationItem = lottie.loadAnimation({
-      container: containerRef.current,
-      renderer: 'svg',
-      loop: true,
-      autoplay: true,
-      animationData,
-      rendererSettings: {
-        preserveAspectRatio: 'xMidYMid meet',
-      },
-    });
+    let animation: AnimationItem | null = null;
+
+    try {
+      animation = lottie.loadAnimation({
+        container: containerRef.current,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        animationData,
+        rendererSettings: {
+          preserveAspectRatio: 'xMidYMid meet',
+        },
+      });
+    } catch (error) {
+      console.warn('Coupon animation failed to load', error);
+    }
 
     return () => {
-      animation.destroy();
+      animation?.destroy();
     };
   }, []);
 

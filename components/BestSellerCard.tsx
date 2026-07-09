@@ -1,4 +1,4 @@
-export type Marketplace = 'amazon' | 'ebay' | 'walmart' | 'target' | 'bestbuy';
+export type Marketplace = 'amazon' | 'ebay' | 'walmart' | 'target' | 'bestbuy' | 'newegg';
 
 export const MARKETPLACE_LABEL: Record<Marketplace, string> = {
   amazon: 'Amazon',
@@ -6,6 +6,7 @@ export const MARKETPLACE_LABEL: Record<Marketplace, string> = {
   walmart: 'Walmart',
   target: 'Target',
   bestbuy: 'Best Buy',
+  newegg: 'Newegg',
 };
 
 export type BestSeller = {

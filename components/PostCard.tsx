@@ -8,9 +8,13 @@ export default function PostCard({
   post,
   variant = 'tile',
   thumbBg = 'bg-muted',
+  titleAs = 'h3',
+  titleClassName = '',
 }: {
   post: NxtPost;
   variant?: Variant;
+  titleAs?: 'h3' | 'h4';
+  titleClassName?: string;
   /** Tailwind class for the thumbnail's surface (background behind the
    *  product photo). Default `bg-muted`; pass `bg-white` to remove the gray. */
   thumbBg?: string;
@@ -20,6 +24,7 @@ export default function PostCard({
   const img = mediaUrl(post.coverImage ?? null) ?? firstImageUrl(post.content);
   const href = postPath(post);
   const cat = post.categories?.[0];
+  const Title = titleAs;
 
   if (variant === 'feature') {
     return (
@@ -43,9 +48,9 @@ export default function PostCard({
             </Link>
           )}
           <Link href={href}>
-            <h3 className="mt-2 font-display text-2xl font-bold leading-tight text-ink transition group-hover:text-primary">
+            <Title className={`mt-2 font-display text-2xl font-bold leading-tight text-ink transition group-hover:text-primary ${titleClassName}`}>
               {post.title}
-            </h3>
+            </Title>
           </Link>
           {post.excerpt && (
             <p className="mt-3 line-clamp-3 max-w-2xl text-sm leading-6 text-ink/70 sm:text-base">
@@ -85,9 +90,9 @@ export default function PostCard({
             </Link>
           )}
           <Link href={href}>
-            <h3 className="mt-2 font-display text-xl font-bold leading-snug text-ink transition group-hover:text-primary sm:text-2xl">
+            <Title className={`mt-2 font-display text-xl font-bold leading-snug text-ink transition group-hover:text-primary sm:text-2xl ${titleClassName}`}>
               {post.title}
-            </h3>
+            </Title>
           </Link>
           {post.excerpt && (
             <p className="mt-3 line-clamp-3 text-sm leading-6 text-ink/70">{post.excerpt}</p>
@@ -118,9 +123,9 @@ export default function PostCard({
           </div>
           <div className="min-w-0">
             {cat && <p className="text-[11px] font-bold uppercase tracking-wider text-primary">{cat.name}</p>}
-            <h3 className="mt-1 line-clamp-2 font-display text-base font-bold leading-snug text-ink transition group-hover:text-primary">
+            <Title className={`mt-1 line-clamp-2 font-display text-base font-bold leading-snug text-ink transition group-hover:text-primary ${titleClassName}`}>
               {post.title}
-            </h3>
+            </Title>
             <p className="mt-2 text-xs text-ink/50">
               {fmtDate(post.publishedAt)} · {post.readingTimeMinutes ?? 5} min
             </p>
@@ -148,9 +153,9 @@ export default function PostCard({
       <div className="mt-4">
         {cat && <p className="text-[11px] font-bold uppercase tracking-wider text-primary">{cat.name}</p>}
         <Link href={href}>
-          <h3 className="mt-2 line-clamp-2 font-display text-lg font-bold leading-snug text-ink transition group-hover:text-primary">
+          <Title className={`mt-2 line-clamp-2 font-display text-lg font-bold leading-snug text-ink transition group-hover:text-primary ${titleClassName}`}>
             {post.title}
-          </h3>
+          </Title>
         </Link>
         {post.excerpt && (
           <p className="mt-2 line-clamp-2 text-sm leading-6 text-ink/70">{post.excerpt}</p>

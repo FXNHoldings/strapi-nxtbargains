@@ -12,12 +12,18 @@ export const metadata: Metadata = {
   alternates: { canonical: '/deals' },
 };
 
-const DEAL_CATEGORIES = [
-  { slug: 'product-roundups', label: 'Roundup Deals' },
-  { slug: 'product-comparisons', label: 'Compare Prices' },
-  { slug: 'product-reviews', label: 'Reviewed Picks' },
-  { slug: 'top-rated-smart-electronics-devices', label: 'Top Rated' },
-] as const;
+const DEAL_CATEGORY_SLUG = 'deals';
+type SearchParams = { merchant?: string };
+type MerchantFilter = { slug: string; label: string; patterns: string[] };
+
+const MERCHANT_FILTERS: MerchantFilter[] = [
+  { slug: 'amazon', label: 'Amazon', patterns: ['amazon', 'amazon.com'] },
+  { slug: 'ebay', label: 'eBay', patterns: ['ebay', 'ebay.com'] },
+  { slug: 'walmart', label: 'Walmart', patterns: ['walmart', 'walmart.com', 'goto.walmart'] },
+  { slug: 'target', label: 'Target', patterns: ['target', 'target.com'] },
+  { slug: 'newegg', label: 'Newegg', patterns: ['newegg', 'newegg.com'] },
+  { slug: 'bestbuy', label: 'Best Buy', patterns: ['best buy', 'bestbuy', 'bestbuy.com'] },
+];
 
 function estimateDealScore(post: NxtPost): number {
   const category = primaryCategorySlug(post);
@@ -39,125 +45,107 @@ function extractPrice(html?: string): string | null {
   return match?.[0]?.replace(/\s+/g, ' ').replace(/^([$£€])\1+/, '$1') ?? null;
 }
 
-function storeLabel(post: NxtPost): string {
-  const content = `${post.sourceUrl ?? ''} ${post.content ?? ''}`.toLowerCase();
-  if (content.includes('amazon.')) return 'Amazon';
-  if (content.includes('ebay.')) return 'eBay';
-  if (content.includes('walmart.')) return 'Walmart';
-  if (content.includes('bestbuy.')) return 'Best Buy';
-  return 'Multiple stores';
-}
-
 function postImage(post: NxtPost): string | null {
   return mediaUrl(post.coverImage ?? null) ?? mediaUrl(post.ogImage ?? null) ?? firstImageUrl(post.content);
 }
 
-export default async function DealsPage() {
-  const sections = await Promise.all(
-    DEAL_CATEGORIES.map((category) =>
-      listPosts({ category: category.slug, pageSize: 12 })
-        .then((r) => r.data)
-        .catch(() => [] as NxtPost[]),
-    ),
-  );
+function postMerchant(post: NxtPost): MerchantFilter | null {
+  const merchantMatch = post.content.match(/<strong>Merchant:<\/strong>\s*([^<]+)/i);
+  const text = `${post.title} ${post.sourceUrl ?? ''} ${merchantMatch?.[1] ?? ''} ${post.content}`.toLowerCase();
+  return MERCHANT_FILTERS.find((merchant) => merchant.patterns.some((pattern) => text.includes(pattern))) ?? null;
+}
 
-  const seen = new Set<number>();
-  const deals = sections
-    .flat()
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    .filter((post) => {
-      if (seen.has(post.id)) return false;
-      seen.add(post.id);
-      return true;
-    })
-    .slice(0, 24);
+function merchantCounts(posts: NxtPost[]) {
+  const counts = new Map<string, number>();
+  for (const post of posts) {
+    const merchant = postMerchant(post);
+    if (!merchant) continue;
+    counts.set(merchant.slug, (counts.get(merchant.slug) ?? 0) + 1);
+  }
+  return counts;
+}
 
-  const topDeals = deals.slice(0, 3);
+export default async function DealsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const { merchant: merchantRaw } = await searchParams;
+  const selectedMerchant = MERCHANT_FILTERS.find((item) => item.slug === merchantRaw)?.slug ?? 'all';
+  const deals = await listPosts({ category: DEAL_CATEGORY_SLUG, pageSize: 24 })
+    .then((r) => r.data)
+    .catch(() => [] as NxtPost[]);
+  const counts = merchantCounts(deals);
+  const filteredDeals = selectedMerchant === 'all'
+    ? deals
+    : deals.filter((post) => postMerchant(post)?.slug === selectedMerchant);
 
   return (
     <main data-testid="deals-page">
       <section className="bg-paper">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 lg:grid-cols-[minmax(0,1fr)_360px] lg:py-20">
+        <div className="mx-auto max-w-[1366px] px-6 pb-0 pt-14 lg:pt-20">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">NXT.Bargains Deals</p>
-            <h1 className="mt-4 max-w-4xl font-display text-4xl font-bold leading-[1.04] text-ink sm:text-5xl">
+            <h1 className="max-w-4xl font-display text-4xl font-semibold leading-[1.04] text-ink sm:text-5xl">
               Find bargains worth checking before you buy.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-8 text-ink/65 sm:text-lg">
-              A first version of the NXT shopping hub: deal ideas, product shortlists, comparison
-              starting points, and bargain signals pulled from our buying guides.
+              Deal-focused articles from the NXT.Bargains editors, centered on products worth checking,
+              value signals, shopping caveats, and comparison points before you buy.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              {DEAL_CATEGORIES.map((category) => (
-                <Link
-                  key={category.slug}
-                  href={`/${category.slug}`}
-                  className="inline-flex rounded-full border border-ink/15 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-[0.14em] text-ink transition hover:border-primary hover:text-primary"
-                >
-                  {category.label}
-                </Link>
-              ))}
-            </div>
           </div>
-
-          <aside className="border border-ink/10 bg-white p-6">
-            <h2 className="font-display text-xl font-bold text-ink">What this page will become</h2>
-            <div className="mt-5 space-y-4 text-sm leading-6 text-ink/65">
-              <p>Live prices from multiple stores.</p>
-              <p>Price history and “buy now or wait” signals.</p>
-              <p>Email alerts when a product drops below your target price.</p>
-            </div>
-          </aside>
         </div>
       </section>
 
-      {topDeals.length > 0 && (
-        <section className="bg-white py-12" data-testid="top-deals">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Editor signals</p>
-                <h2 className="mt-2 font-display text-3xl font-bold text-ink">Top bargain starting points</h2>
-              </div>
-              <p className="max-w-lg text-sm leading-6 text-ink/55">
-                Scores are starter editorial signals until live price tracking is connected.
-              </p>
-            </div>
-            <div className="mt-8 grid gap-5 lg:grid-cols-3">
-              {topDeals.map((post) => (
-                <DealCard key={post.id} post={post} featured />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <section className="bg-paper py-12 sm:py-16" data-testid="deal-grid">
+      <section className="bg-paper pb-12 pt-[50px] sm:pb-16" data-testid="deal-grid">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Browse</p>
-              <h2 className="mt-2 font-display text-3xl font-bold text-ink">Latest bargain finds</h2>
-            </div>
-            <form action="/search" className="flex w-full max-w-sm border border-ink/15 bg-white">
-              <label htmlFor="deal-search" className="sr-only">Search deals</label>
-              <input
-                id="deal-search"
-                name="q"
-                type="search"
-                placeholder="Search products..."
-                className="h-12 min-w-0 flex-1 bg-transparent px-4 text-sm outline-none placeholder:text-ink/40"
-              />
-              <button className="bg-ink px-5 text-xs font-bold uppercase tracking-[0.14em] text-white" type="submit">
-                Search
-              </button>
-            </form>
-          </div>
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,25%)_minmax(0,75%)] lg:items-start">
+            <aside className="border border-ink/10 bg-white p-5 lg:sticky lg:top-28" data-testid="deals-filter-sidebar">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Filter</p>
+              <h2 className="mt-2 font-display !text-[18px] font-bold text-ink">Merchants</h2>
+              <div className="mt-5 space-y-2">
+                <Link
+                  href="/deals"
+                  className={`flex items-center justify-between border px-3 py-2 text-sm font-semibold transition ${
+                    selectedMerchant === 'all'
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-ink/10 text-ink/70 hover:border-primary hover:text-primary'
+                  }`}
+                >
+                  <span>All merchants</span>
+                  <span>{deals.length}</span>
+                </Link>
+                {MERCHANT_FILTERS.map((merchant) => {
+                  const count = counts.get(merchant.slug) ?? 0;
+                  if (!count) return null;
 
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {deals.map((post) => (
-              <DealCard key={post.id} post={post} />
-            ))}
+                  return (
+                    <Link
+                      key={merchant.slug}
+                      href={`/deals?merchant=${merchant.slug}`}
+                      className={`flex items-center justify-between border px-3 py-2 text-sm font-semibold transition ${
+                        selectedMerchant === merchant.slug
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-ink/10 text-ink/70 hover:border-primary hover:text-primary'
+                      }`}
+                    >
+                      <span>{merchant.label}</span>
+                      <span>{count}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </aside>
+
+            <div className="min-w-0">
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredDeals.length > 0 ? (
+                  filteredDeals.map((post) => <DealCard key={post.id} post={post} />)
+                ) : (
+                  <div className="border border-ink/10 bg-white p-8 sm:col-span-2 xl:col-span-3">
+                    <h3 className="font-display text-xl font-bold text-ink">No Deals articles yet</h3>
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-ink/60">
+                      Publish posts in the Strapi NXT.Bargains category named Deals and they will appear here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -165,7 +153,7 @@ export default async function DealsPage() {
   );
 }
 
-function DealCard({ post, featured = false }: { post: NxtPost; featured?: boolean }) {
+function DealCard({ post }: { post: NxtPost }) {
   const image = postImage(post);
   const price = extractPrice(post.content);
   const score = estimateDealScore(post);
@@ -179,10 +167,10 @@ function DealCard({ post, featured = false }: { post: NxtPost; featured?: boolea
           <img
             src={image}
             alt={post.coverImage?.alternativeText || post.title}
-            className={`${featured ? 'h-64' : 'h-52'} w-full object-contain p-5 transition duration-500 group-hover:scale-[1.03]`}
+            className="h-52 w-full object-contain p-5 transition duration-500 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className={`${featured ? 'h-64' : 'h-52'} bg-muted`} />
+          <div className="h-52 bg-muted" />
         )}
       </Link>
 
@@ -197,7 +185,7 @@ function DealCard({ post, featured = false }: { post: NxtPost; featured?: boolea
         </div>
 
         <Link href={postPath(post)}>
-          <h3 className="mt-4 line-clamp-2 font-display text-xl font-bold leading-tight text-ink transition group-hover:text-primary">
+          <h3 className="mt-4 line-clamp-2 font-display !text-[1rem] font-bold leading-tight text-ink transition group-hover:text-primary">
             {post.title}
           </h3>
         </Link>
@@ -207,22 +195,12 @@ function DealCard({ post, featured = false }: { post: NxtPost; featured?: boolea
         <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
           <div className="border border-ink/10 p-3">
             <p className="text-xs uppercase tracking-[0.12em] text-ink/40">Price seen</p>
-            <p className="mt-1 font-display text-lg font-bold text-ink">{price ?? 'Check guide'}</p>
+            <p className="mt-1 font-display text-sm font-bold text-ink">{price ?? 'Check guide'}</p>
           </div>
           <div className="border border-ink/10 p-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-ink/40">Store</p>
-            <p className="mt-1 font-display text-lg font-bold text-ink">{storeLabel(post)}</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-ink/40">Updated</p>
+            <p className="mt-1 font-display text-sm font-bold text-ink">{fmtDate(post.updatedAt)}</p>
           </div>
-        </div>
-
-        <div className="mt-auto flex items-center justify-between gap-4 pt-5">
-          <p className="text-xs text-ink/45">Updated {fmtDate(post.updatedAt)}</p>
-          <Link
-            href={postPath(post)}
-            className="inline-flex rounded-full bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis"
-          >
-            Compare
-          </Link>
         </div>
       </div>
     </article>

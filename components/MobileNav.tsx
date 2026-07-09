@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { SITE } from '@/lib/site';
 
-type NavItem = { href: string; label: string };
+type NavItem = { href: string; label: string; children?: { href: string; label: string }[] };
 
 export default function MobileNav({ items }: { items: NavItem[] }) {
   const [open, setOpen] = useState(false);
@@ -143,11 +143,11 @@ export default function MobileNav({ items }: { items: NavItem[] }) {
             <nav aria-label="Primary" className="mt-6">
               <ul className="divide-y divide-ink/10">
                 {items.map((item) => (
-                  <li key={item.href}>
+                  <li key={`${item.label}-${item.href}`}>
                     <Link
                       href={item.href}
                       onClick={() => setOpen(false)}
-                      className="flex items-center justify-between py-4 font-display text-lg font-bold tracking-tight text-ink transition hover:text-primary"
+                      className="flex items-center justify-between py-4 font-['Urbanist'] text-lg font-medium tracking-tight text-ink transition hover:text-primary"
                     >
                       {item.label}
                       <svg
@@ -164,32 +164,25 @@ export default function MobileNav({ items }: { items: NavItem[] }) {
                         <path d="M9 6l6 6-6 6" />
                       </svg>
                     </Link>
+                    {item.children && (
+                      <ul className="pb-3 pl-4">
+                        {item.children.map((child) => (
+                          <li key={child.href}>
+                            <Link
+                              href={child.href}
+                              onClick={() => setOpen(false)}
+                              className="block py-2 font-['Urbanist'] text-sm font-medium text-ink/65 transition hover:text-primary"
+                            >
+                              {child.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </li>
                 ))}
               </ul>
             </nav>
-
-            <Link
-              href="/#home-hero"
-              onClick={() => setOpen(false)}
-              className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 font-display text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-primary-emphasis"
-            >
-              Track a price
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-                aria-hidden
-              >
-                <path d="M5 12h14" />
-                <polyline points="13 6 19 12 13 18" />
-              </svg>
-            </Link>
           </div>
         </div>
       </div>

@@ -1,89 +1,110 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { listStores, type Store } from '@/lib/strapi';
+import {
+  countryName,
+  highIntentStoreAliases,
+  listCouponStores,
+  storeLogoUrl,
+  type CouponStore,
+} from '@/lib/coupon-stores';
 import { SITE } from '@/lib/site';
 import PageHero from '@/components/PageHero';
 import ValueStrip from '@/components/ValueStrip';
 
-export const revalidate = 300;
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
-  title: 'Stores & Marketplaces',
-  description: `Browse every store and marketplace we compare prices across on ${SITE.name}.`,
+  title: 'Coupon Stores',
+  description: `Browse coupon stores, promo-code pages, and discount feeds on ${SITE.name}.`,
   alternates: { canonical: '/stores' },
 };
 
-const ALPHABET = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+type CouponStoreCard = CouponStore & {
+  displayName: string;
+  slug: string;
+  priority: number;
+};
 
-function letterOf(name: string) {
-  const c = (name[0] || '#').toUpperCase();
-  return /[A-Z]/.test(c) ? c : '#';
+function storeHref(store: CouponStoreCard) {
+  return store.slug ? `/coupons/${store.slug}` : `/coupons/stores/${store.id}`;
 }
 
 export default async function StoresPage() {
-  const stores = await listStores().catch(() => [] as Store[]);
+  const cache = listCouponStores();
+  const aliases = highIntentStoreAliases();
+  const storesById = new Map(cache.stores.map((store) => [store.id, store]));
 
-  const groups = new Map<string, Store[]>();
-  for (const s of stores) {
-    const l = letterOf(s.name);
-    if (!groups.has(l)) groups.set(l, []);
-    groups.get(l)!.push(s);
-  }
-  const letters = ALPHABET.filter((l) => groups.has(l));
+  const featuredStores = aliases
+    .map((alias) => {
+      const store = storesById.get(alias.storeId);
+      if (!store) return null;
+      return {
+        ...store,
+        displayName: alias.label || store.name,
+        slug: alias.slug,
+        priority: Number((alias as { priority?: number }).priority || 99),
+      };
+    })
+    .filter((store): store is CouponStoreCard => Boolean(store))
+    .sort((a, b) => a.priority - b.priority || a.displayName.localeCompare(b.displayName));
 
   return (
     <div data-testid="stores-page">
       <PageHero
-        eyebrow="Directory"
-        title="Stores & Marketplaces"
+        eyebrow="Coupon directory"
+        title="Coupon Stores"
         titleClassName="text-[2rem]"
-        sub={`Every store and marketplace we compare prices across${stores.length ? ` — ${stores.length} and counting` : ''}.`}
-      >
-        {/* alphabet jump-nav */}
-        <div className="mt-3.5 flex flex-wrap gap-1.5">
-          {ALPHABET.map((l) =>
-            groups.has(l) ? (
-              <a key={l} href={`#letter-${l}`} className="grid h-[34px] w-[34px] place-items-center rounded-[9px] border border-ink/10 bg-white font-display text-[0.85rem] font-semibold text-ink transition hover:border-primary hover:bg-primary hover:text-white">{l}</a>
-            ) : (
-              <span key={l} className="grid h-[34px] w-[34px] place-items-center rounded-[9px] font-display text-[0.85rem] font-semibold text-ink/25">{l}</span>
-            ),
-          )}
-        </div>
-      </PageHero>
+        sub="Browse popular coupon pages and promo-code feeds refreshed from the coupon cache."
+      />
 
       <section className="mx-auto max-w-[1366px] px-6 pb-[54px] pt-[18px]">
-        {stores.length === 0 ? (
-          <p className="text-ink/60">No stores yet — they&apos;ll appear here as products are added.</p>
-        ) : (
-          letters.map((letter) => (
-            <div key={letter} id={`letter-${letter}`} className="mt-[30px] scroll-mt-24 first:mt-0">
-              <div className="mb-[18px] border-b-2 border-ink/10 pb-2.5 font-display text-[1.3rem] font-extrabold text-primary">{letter}</div>
-              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
-                {groups.get(letter)!.map((s) => (
-                  <Link
-                    key={s.slug}
-                    href={`/stores/${s.slug}`}
-                    className="flex items-center gap-3.5 rounded-[13px] border border-ink/10 bg-white p-3.5 transition hover:-translate-y-[3px] hover:border-primary hover:shadow-[0_18px_36px_-22px_rgba(13,27,42,0.4)]"
-                  >
-                    {s.logo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.logo} alt={s.name} loading="lazy" referrerPolicy="no-referrer" className="h-[46px] w-[46px] flex-none rounded-[10px] object-contain mix-blend-multiply" />
-                    ) : (
-                      <span className="grid h-[46px] w-[46px] flex-none place-items-center rounded-[10px] bg-muted font-display font-bold text-ink/40">{s.name[0]}</span>
-                    )}
-                    <div className="min-w-0">
-                      <h4 className="truncate font-display text-[0.92rem] font-semibold text-ink">{s.name}</h4>
-                      <div className="text-[0.78rem] text-ink/55">{s.productCount} product{s.productCount === 1 ? '' : 's'}</div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+        {featuredStores.length > 0 && (
+          <div>
+            <div className="mb-[18px] flex flex-wrap items-end justify-between gap-3 border-b-2 border-ink/10 pb-2.5">
+              <h2 className="font-display !text-[1.625rem] font-bold text-ink">Popular coupon stores</h2>
+              <Link href="/coupons" className="text-xs font-bold uppercase tracking-[0.14em] text-primary hover:underline">
+                View coupons
+              </Link>
             </div>
-          ))
+            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
+              {featuredStores.map((store) => (
+                <StoreCard key={store.id} store={store} featured />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {featuredStores.length === 0 && (
+          <p className="mt-10 text-ink/60">No popular coupon stores yet. Update the high-intent coupon-store cache to populate this page.</p>
         )}
       </section>
 
       <ValueStrip />
     </div>
+  );
+}
+
+function StoreCard({ store, featured = false }: { store: CouponStoreCard; featured?: boolean }) {
+  const logo = storeLogoUrl(store);
+
+  return (
+    <Link
+      href={storeHref(store)}
+      className="flex items-center gap-3.5 rounded-[13px] border border-ink/10 bg-white p-3.5 transition hover:-translate-y-[3px] hover:border-primary hover:shadow-[0_18px_36px_-22px_rgba(13,27,42,0.4)]"
+    >
+      {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logo} alt={store.displayName} loading="lazy" referrerPolicy="no-referrer" className="h-[46px] w-[46px] flex-none rounded-[10px] object-contain p-1 mix-blend-multiply ring-1 ring-inset ring-ink/10" />
+      ) : (
+        <span className="grid h-[46px] w-[46px] flex-none place-items-center rounded-[10px] bg-muted font-display font-bold text-ink/40">
+          {store.displayName[0]}
+        </span>
+      )}
+      <div className="min-w-0">
+        <h4 className="truncate font-display !text-[1.1rem] font-semibold text-ink">{store.displayName}</h4>
+        <div className="truncate text-[0.78rem] text-ink/55">{featured ? 'Coupon page' : 'Coupon store'}</div>
+        <div className="mt-0.5 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-primary">{countryName(store.country)}</div>
+      </div>
+    </Link>
   );
 }

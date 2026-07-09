@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { type BestSeller, type Marketplace, MARKETPLACE_LABEL } from './BestSellerCard';
 
@@ -32,9 +33,19 @@ export default function MarketplaceBestSellers({ groups }: { groups: Group[] }) 
         ))}
       </div>
 
+      <div className="mb-5 flex justify-end">
+        <Link
+          href={`/best-sellers/${current.key}`}
+          className="text-xs font-bold uppercase tracking-[0.14em] text-primary transition hover:text-primary-emphasis"
+        >
+          View all {MARKETPLACE_LABEL[current.key]}
+        </Link>
+      </div>
+
       {/* ranked list */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {(current?.items ?? []).slice(0, 10).map((it, i) => (
+      {(current?.items ?? []).length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(current?.items ?? []).slice(0, 10).map((it, i) => (
           <a
             key={`${it.marketplace}-${it.asin || it.id || i}`}
             href={it.url}
@@ -59,8 +70,13 @@ export default function MarketplaceBestSellers({ groups }: { groups: Group[] }) 
             </span>
             <span className="shrink-0 font-display text-[0.95rem] font-bold text-ink">{it.price ?? ''}</span>
           </a>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="border border-ink/10 bg-white p-6 text-sm leading-6 text-ink/60">
+          {MARKETPLACE_LABEL[current.key]} best sellers will appear here after the next refresh.
+        </div>
+      )}
     </div>
   );
 }

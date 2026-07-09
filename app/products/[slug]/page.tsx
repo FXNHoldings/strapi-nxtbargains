@@ -303,7 +303,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-[0.74rem] font-bold uppercase tracking-[0.18em] text-primary">Compare stores</p>
-                <h2 className="mt-2 font-display text-2xl font-bold text-ink">Current prices across merchants</h2>
+                <h2 className="mt-2 font-display text-[1.625rem] font-bold text-ink">Current prices across merchants</h2>
               </div>
               <p className="max-w-xl text-sm leading-6 text-ink/55">
                 Saved merchant offers refresh daily when a confident match is found. Always confirm the final price, shipping, and condition at checkout.
@@ -407,7 +407,6 @@ function ProductInfoTabs({
         name={tabName}
         type="radio"
         className="sr-only tab-input-description"
-        defaultChecked
       />
       <input
         id={specificationsId}
@@ -420,6 +419,7 @@ function ProductInfoTabs({
         name={tabName}
         type="radio"
         className="sr-only tab-input-history"
+        defaultChecked
       />
       <input
         id={reviewsId}
@@ -448,11 +448,11 @@ function ProductInfoTabs({
           <div>
             <h2 className="font-display text-2xl font-bold text-ink">Product details</h2>
             {description ? (
-              <div className="mt-4 max-w-3xl text-[14px] leading-7 text-ink/70">
+              <div className="mt-4 text-[14px] leading-7 text-ink/70 lg:columns-2 lg:gap-8">
                 <ProductDescription markdown={description} />
               </div>
             ) : (
-              <p className="mt-4 max-w-3xl text-[14px] leading-7 text-ink/70">{summary}</p>
+              <p className="mt-4 text-[14px] leading-7 text-ink/70 lg:columns-2 lg:gap-8">{summary}</p>
             )}
           </div>
           <dl className="grid gap-3 text-sm">
@@ -699,6 +699,8 @@ function PriceHistoryChart({ points }: { points: PriceHistoryPoint[] }) {
         aria-label="Product price history chart"
         className="h-auto min-w-[720px] w-full"
       >
+        <rect width={width} height={height} fill="#ffffff" />
+
         {yTicks.map((tick) => {
           const y = plotTop + (1 - tick / chartMax) * plotHeight;
           return (

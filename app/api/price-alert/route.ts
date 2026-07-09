@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
-const BASE = (process.env.NEXT_PUBLIC_STRAPI_URL || 'https://cms.fxnstudio.com').replace(/\/$/, '');
+const BASE = (process.env.STRAPI_INTERNAL_URL || process.env.NEXT_PUBLIC_STRAPI_URL || 'https://cms.fxnstudio.com').replace(/\/$/, '');
 // Writes need a token with create permission on commerce-price-alert.
 const WRITE_TOKEN = process.env.STRAPI_WRITE_TOKEN || process.env.STRAPI_API_TOKEN || '';
 

@@ -20,15 +20,22 @@ import {
 } from '@/lib/commerce';
 import PostCard from '@/components/PostCard';
 import Hero from '@/components/Hero';
-import { type BestSeller, type Marketplace } from '@/components/BestSellerCard';
 import MarketplaceBestSellers from '@/components/MarketplaceBestSellers';
 import { listHomepageCoupons, type Coupon } from '@/lib/coupon-data';
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { listBestSellerGroups } from '@/lib/best-sellers';
 
 export const revalidate = 60;
 
-const STRIP_MARKETPLACES = ['Amazon', 'eBay', 'Walmart', 'Newegg', 'Best Buy', 'Target', 'US Mobile', 'Back Market'];
+const STRIP_MARKETPLACES = [
+  { name: 'Amazon', domain: 'amazon.com' },
+  { name: 'eBay', domain: 'ebay.com' },
+  { name: 'Walmart', domain: 'walmart.com' },
+  { name: 'Newegg', domain: 'newegg.com' },
+  { name: 'Best Buy', domain: 'bestbuy.com' },
+  { name: 'Target', domain: 'target.com' },
+  { name: 'US Mobile', domain: 'usmobile.com' },
+  { name: 'Back Market', domain: 'backmarket.com' },
+];
 
 type Deal = {
   product: CommerceProduct;
@@ -41,49 +48,6 @@ type Deal = {
   pct: number;
   currency: string;
 };
-
-function isGoogleShoppingUrl(url: string) {
-  try {
-    const u = new URL(url);
-    const host = u.hostname.toLowerCase();
-    const googleHost = host === 'googleadservices.com'
-      || host.endsWith('.googleadservices.com')
-      || host === 'shopping.google.com'
-      || host.endsWith('.shopping.google.com')
-      || /^google\.[a-z.]+$/.test(host)
-      || /\.google\.[a-z.]+$/.test(host);
-    if (!googleHost) return false;
-    return host.includes('googleadservices')
-      || host.includes('shopping.google')
-      || ['/search', '/shopping', '/aclk', '/url'].some((path) => u.pathname.startsWith(path))
-      || u.searchParams.get('tbm') === 'shop'
-      || u.searchParams.get('udm') === '28'
-      || u.searchParams.has('ibp');
-  } catch {
-    return false;
-  }
-}
-
-function marketplaceSearchUrl(marketplace: Marketplace, title: string) {
-  const q = encodeURIComponent(title.trim());
-  if (marketplace === 'amazon') return `https://www.amazon.com/s?k=${q}`;
-  if (marketplace === 'bestbuy') return `https://www.bestbuy.com/site/searchpage.jsp?st=${q}`;
-  if (marketplace === 'ebay') return `https://www.ebay.com/sch/i.html?_nkw=${q}`;
-  if (marketplace === 'target') return `https://www.target.com/s?searchTerm=${q}`;
-  if (marketplace === 'walmart') return `https://www.walmart.com/search?q=${q}`;
-  return '';
-}
-
-function geniusDestinationMap() {
-  try {
-    const p = join(process.cwd(), 'data', 'geniuslink-cache.json');
-    if (!existsSync(p)) return new Map<string, string>();
-    const cache = JSON.parse(readFileSync(p, 'utf8')) as Record<string, string>;
-    return new Map(Object.entries(cache).map(([destination, short]) => [short, destination]));
-  } catch {
-    return new Map<string, string>();
-  }
-}
 
 function toDeal(product: CommerceProduct): Deal | null {
   const offers = (product.offers ?? []).filter((o) => !o.status || o.status === 'active');
@@ -131,42 +95,21 @@ export default async function HomePage() {
 
   const products = productsRes?.data ?? [];
 
-  // Match each marketplace-strip name to a store logo (fall back to text).
+  // Match each marketplace-strip name to a store logo, then fall back to a favicon.
   const normStore = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const stripItems = STRIP_MARKETPLACES.map((name) => {
+  const stripItems = STRIP_MARKETPLACES.map(({ name, domain }) => {
     const n = normStore(name);
     const match =
       stores.find((s) => normStore(s.name) === n) ||
       stores.find((s) => { const sn = normStore(s.name); return sn.includes(n) || n.includes(sn); });
-    return { name, logo: match?.logo ?? null };
+    return { name, logo: match?.logo ?? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` };
   });
   const deals = dealProducts.map(toDeal).filter((d): d is Deal => d !== null);
   const priceDrops = deals.filter((d) => d.pct > 0).sort((a, b) => b.pct - a.pct).slice(0, 6);
   const trending = products.slice(0, 6);
 
   // Best Sellers — one daily JSON cache per marketplace (scripts/fetch-*.mjs).
-  const MARKETPLACE_FILES: { key: Marketplace; file: string }[] = [
-    { key: 'amazon', file: 'best-sellers.json' },
-    { key: 'ebay', file: 'best-sellers-ebay.json' },
-    { key: 'walmart', file: 'best-sellers-walmart.json' },
-    { key: 'target', file: 'best-sellers-target.json' },
-    { key: 'bestbuy', file: 'best-sellers-bestbuy.json' },
-  ];
-  const geniusDestinations = geniusDestinationMap();
-  const bestSellerGroups = MARKETPLACE_FILES.map(({ key, file }) => {
-    try {
-      const p = join(process.cwd(), 'data', file);
-      if (!existsSync(p)) return { key, items: [] as BestSeller[] };
-      const items = ((JSON.parse(readFileSync(p, 'utf8')).items ?? []) as BestSeller[]).map((it) => ({
-        ...it,
-        marketplace: key,
-        url: isGoogleShoppingUrl(geniusDestinations.get(it.url) ?? it.url) ? marketplaceSearchUrl(key, it.title) : it.url,
-      })).filter((it) => Boolean(it.url));
-      return { key, items };
-    } catch {
-      return { key, items: [] as BestSeller[] };
-    }
-  }).filter((g) => g.items.length > 0);
+  const bestSellerGroups = listBestSellerGroups({ includeEmpty: true });
 
   const websiteJsonLd = {
     '@context': 'https://schema.org',
@@ -194,12 +137,17 @@ export default async function HomePage() {
       <div className="border-y border-ink/10 bg-muted" data-testid="home-strip">
         <div className="mx-auto flex max-w-[1366px] flex-wrap items-center justify-center gap-x-9 gap-y-3.5 px-6 py-5">
           <span className="text-[0.78rem] font-semibold text-ink/55">Comparing prices across</span>
-          {stripItems.map((m) => (m.logo ? (
+          {stripItems.map((m) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={m.name} src={m.logo} alt={m.name} title={m.name} referrerPolicy="no-referrer" className="h-7 w-auto max-w-[96px] object-contain opacity-70 mix-blend-multiply transition hover:opacity-100" />
-          ) : (
-            <span key={m.name} className="font-display text-[1.02rem] font-bold text-ink/40 transition hover:text-primary">{m.name}</span>
-          )))}
+            <img
+              key={m.name}
+              src={m.logo}
+              alt={`${m.name} logo`}
+              title={m.name}
+              referrerPolicy="no-referrer"
+              className="h-7 w-7 object-contain opacity-75 transition hover:opacity-100"
+            />
+          ))}
         </div>
       </div>
 
@@ -217,7 +165,7 @@ export default async function HomePage() {
 
       {/* ---------- BEST SELLERS ---------- */}
       {bestSellerGroups.length > 0 && (
-        <section className="pb-14 sm:pb-[72px]" data-testid="home-best-sellers">
+        <section className="pt-[30px] pb-14 sm:pb-[72px]" data-testid="home-best-sellers">
           <div className="mx-auto max-w-[1366px] px-6">
             <SectionHead eyebrow="Top picks" title="Best Sellers" intro="The top-ranked products across the major marketplaces, refreshed daily." />
             <div className="mt-9"><MarketplaceBestSellers groups={bestSellerGroups} /></div>
@@ -391,8 +339,8 @@ function CouponCodeCard({ coupon }: { coupon: Coupon }) {
       </div>
       <div className="flex flex-1 flex-col p-4">
         <p className="text-[0.72rem] font-bold uppercase tracking-[0.12em] text-primary">{coupon.store}</p>
-        <h3 className="mt-2 font-display text-[1.25rem] font-extrabold leading-tight text-ink">{coupon.discount}</h3>
-        <p className="mt-3 line-clamp-3 text-[0.88rem] leading-6 text-ink/65">{title}</p>
+        <h4 className="mt-2 font-display text-[1.25rem] font-extrabold leading-tight text-ink">{coupon.discount}</h4>
+        <p className="mt-3 line-clamp-1 text-[0.88rem] leading-6 text-ink/65">{title}</p>
         <div className="mt-4 rounded border border-dashed border-ink/20 bg-paper px-3 py-2">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink/45">Code</p>
           <p className="mt-1 font-display text-[0.98rem] font-bold text-ink">{coupon.code ?? 'No code needed'}</p>

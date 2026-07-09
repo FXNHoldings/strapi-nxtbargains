@@ -16,8 +16,14 @@ type GeniuslinkWindow = Window & {
 };
 
 function convertAmazonLinks() {
-  const genius = (window as GeniuslinkWindow).Genius;
-  genius?.amazon?.convertLinks?.(GENIUSLINK_TSID, true, GENIUSLINK_DOMAIN);
+  try {
+    const convertLinks = (window as GeniuslinkWindow).Genius?.amazon?.convertLinks;
+    if (typeof convertLinks === 'function') {
+      convertLinks(GENIUSLINK_TSID, true, GENIUSLINK_DOMAIN);
+    }
+  } catch (error) {
+    console.warn('Geniuslink link conversion failed', error);
+  }
 }
 
 export default function GeniuslinkScripts() {

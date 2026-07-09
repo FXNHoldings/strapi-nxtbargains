@@ -9,6 +9,7 @@
 //   node scripts/fetch-store-products.mjs --store=Target [--query=electronics] [--limit=30]
 //   node scripts/fetch-store-products.mjs --store="Best Buy"
 //   node scripts/fetch-store-products.mjs --store=Amazon --out=best-sellers.json
+//   node scripts/fetch-store-products.mjs --store=Walmart --query="electronics deals" --source-url=https://www.walmart.com/shop/deals/electronics
 //
 // Env (.env.local): RAPIDAPI_KEY, optional <KEY>_QUERY (e.g. TARGET_QUERY)
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -31,6 +32,9 @@ const QUERY = arg('query', process.env[`${storeKey.toUpperCase()}_QUERY`] || pro
 const LIMIT = parseInt(arg('limit', process.env.BESTSELLERS_LIMIT || '30'), 10);
 const OUT_FILE = arg('out', `best-sellers-${storeKey}.json`);
 const OUT = join(ROOT, 'data', OUT_FILE);
+const FETCH_TIMEOUT_MS = parseInt(arg('timeout', process.env.STORE_FETCH_TIMEOUT_MS || '15000'), 10);
+const OFFER_FETCH_TIMEOUT_MS = parseInt(arg('offer-timeout', process.env.STORE_OFFER_FETCH_TIMEOUT_MS || String(FETCH_TIMEOUT_MS)), 10);
+const SOURCE_URL = arg('source-url', '');
 
 if (!STORE) { console.error('Pass --store="Target" (or "Best Buy", …) — aborting.'); process.exit(1); }
 if (OUT_FILE.includes('/') || OUT_FILE.includes('\\')) { console.error('--out must be a filename, not a path.'); process.exit(1); }
@@ -52,6 +56,7 @@ const MARKETPLACE_HOSTS = {
   amazon: ['amazon.com', 'amzn.to'],
   bestbuy: ['bestbuy.com'],
   ebay: ['ebay.com'],
+  newegg: ['newegg.com'],
   target: ['target.com'],
   walmart: ['walmart.com'],
 };
@@ -111,6 +116,7 @@ function marketplaceSearchUrl(title) {
   if (storeKey === 'amazon') return `https://www.amazon.com/s?k=${q}`;
   if (storeKey === 'bestbuy') return `https://www.bestbuy.com/site/searchpage.jsp?st=${q}`;
   if (storeKey === 'ebay') return `https://www.ebay.com/sch/i.html?_nkw=${q}`;
+  if (storeKey === 'newegg') return `https://www.newegg.com/p/pl?d=${q}`;
   if (storeKey === 'target') return `https://www.target.com/s?searchTerm=${q}`;
   if (storeKey === 'walmart') return `https://www.walmart.com/search?q=${q}`;
   return '';
@@ -132,14 +138,24 @@ function directOfferForStore(offers) {
 async function offersForProduct(productId) {
   if (!productId) return [];
   const url = `https://${HOST}/product-offers-v2?product_id=${encodeURIComponent(productId)}&country=us&language=en&limit=20`;
-  const res = await fetch(url, { headers: { 'X-RapidAPI-Key': KEY, 'X-RapidAPI-Host': HOST } });
-  if (!res.ok) return [];
-  return (await res.json())?.data?.offers || [];
+  try {
+    const res = await fetch(url, {
+      headers: { 'X-RapidAPI-Key': KEY, 'X-RapidAPI-Host': HOST },
+      signal: AbortSignal.timeout(OFFER_FETCH_TIMEOUT_MS),
+    });
+    if (!res.ok) return [];
+    return (await res.json())?.data?.offers || [];
+  } catch {
+    return [];
+  }
 }
 
 async function main() {
   const url = `https://${HOST}/search-v2?q=${encodeURIComponent(QUERY)}&country=us&language=en&page=1&limit=${Math.min(LIMIT, 50)}&sort_by=BEST_MATCH&stores=${encodeURIComponent(STORE)}`;
-  const res = await fetch(url, { headers: { 'X-RapidAPI-Key': KEY, 'X-RapidAPI-Host': HOST } });
+  const res = await fetch(url, {
+    headers: { 'X-RapidAPI-Key': KEY, 'X-RapidAPI-Host': HOST },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
   if (!res.ok) throw new Error(`API HTTP ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`);
   const json = await res.json();
   const products = json?.data?.products || [];
@@ -180,7 +196,14 @@ async function main() {
   for (const it of usableItems) it.url = await geniusWrap(it.url);
   flushGeniusCache();
 
-  writeFileSync(OUT, JSON.stringify({ marketplace: storeKey, store: STORE, query: QUERY, capturedAt: new Date().toISOString(), items: usableItems }, null, 2));
+  writeFileSync(OUT, JSON.stringify({
+    marketplace: storeKey,
+    store: STORE,
+    query: QUERY,
+    sourceUrl: SOURCE_URL || undefined,
+    capturedAt: new Date().toISOString(),
+    items: usableItems,
+  }, null, 2));
   console.log(`Wrote ${usableItems.length} ${STORE} products (q="${QUERY}") -> ${OUT}`);
 }
 

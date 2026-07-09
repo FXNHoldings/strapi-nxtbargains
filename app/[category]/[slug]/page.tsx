@@ -1,17 +1,43 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPost, listPosts, mediaUrl, type NxtPost } from '@/lib/strapi';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { getPost, listPostComments, listPosts, mediaUrl, type NxtPost } from '@/lib/strapi';
 import { SECTIONS, SITE } from '@/lib/site';
 import { firstImageUrl, fmtDate, primaryCategorySlug, postPath } from '@/lib/format';
 import PostContent from '@/components/PostContent';
-import PostCard from '@/components/PostCard';
 import PostPriceComparison from '@/components/PostPriceComparison';
+import CommentForm from '@/components/CommentForm';
+import ProductCarousel from '@/components/ProductCarousel';
 
 export const revalidate = 60;
 export const dynamicParams = true;
 
 type Params = { category: string; slug: string };
+type SidebarProduct = {
+  rank?: number | string | null;
+  title: string;
+  price?: string | null;
+  image?: string | null;
+  url: string;
+};
+type RawSidebarProduct = Partial<SidebarProduct>;
+type MerchantConfig = {
+  key: string;
+  label: string;
+  file: string;
+};
+
+const BEST_SELLERS_DIR = '/var/www/html/nxt.bargains/data';
+const MERCHANTS: MerchantConfig[] = [
+  { key: 'amazon', label: 'Amazon', file: 'best-sellers.json' },
+  { key: 'ebay', label: 'eBay', file: 'best-sellers-ebay.json' },
+  { key: 'walmart', label: 'Walmart', file: 'best-sellers-walmart.json' },
+  { key: 'target', label: 'Target', file: 'best-sellers-target.json' },
+  { key: 'newegg', label: 'Newegg', file: 'best-sellers-newegg.json' },
+  { key: 'bestbuy', label: 'Best Buy', file: 'best-sellers-bestbuy.json' },
+];
 
 function categoryName(slug?: string): string {
   if (!slug) return '';
@@ -25,6 +51,35 @@ function recentPostDate(iso?: string): string {
     month: 'long',
     year: 'numeric',
   }).format(new Date(iso));
+}
+
+function detectMerchant(post: NxtPost): MerchantConfig | null {
+  const merchantMatch = post.content.match(/<strong>Merchant:<\/strong>\s*([^<]+)/i);
+  const haystack = `${post.title}\n${post.sourceUrl ?? ''}\n${merchantMatch?.[1] ?? ''}\n${post.content}`.toLowerCase();
+
+  return MERCHANTS.find((merchant) => {
+    if (merchant.key === 'bestbuy') return haystack.includes('best buy') || haystack.includes('bestbuy');
+    return haystack.includes(merchant.key);
+  }) ?? null;
+}
+
+async function listMerchantTopProducts(post: NxtPost): Promise<{ merchant: MerchantConfig; products: SidebarProduct[] } | null> {
+  const merchant = detectMerchant(post);
+  if (!merchant) return null;
+
+  try {
+    const raw = await fs.readFile(path.join(BEST_SELLERS_DIR, merchant.file), 'utf8');
+    const parsed = JSON.parse(raw);
+    const items: RawSidebarProduct[] = Array.isArray(parsed?.items) ? parsed.items : [];
+    const products = items
+      .filter((item): item is SidebarProduct => Boolean(item?.title && item?.url && item?.image))
+      .filter((item) => item.url !== post.sourceUrl)
+      .slice(0, 5);
+
+    return products.length ? { merchant, products } : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
@@ -70,16 +125,21 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
     redirect(postPath(post));
   }
 
-  // Pull a few related posts from the same category, excluding this one.
-  const related = await listPosts({ category, pageSize: 5 })
-    .then((r) => r.data.filter((p) => p.id !== post.id).slice(0, 4))
+  // Pull up to 10 related posts from the same category, excluding this one.
+  const related = await listPosts({ category, pageSize: 11 })
+    .then((r) => r.data.filter((p) => p.id !== post.id).slice(0, 10))
     .catch(() => [] as NxtPost[]);
 
   const recentPosts = await listPosts({ pageSize: 6 })
     .then((r) => r.data.filter((p) => p.id !== post.id).slice(0, 5))
     .catch(() => [] as NxtPost[]);
 
-  const cover = mediaUrl(post.coverImage ?? null) ?? firstImageUrl(post.content);
+  const [merchantProducts, comments] = await Promise.all([
+    listMerchantTopProducts(post),
+    listPostComments(post.documentId ?? ''),
+  ]);
+
+  const cover = mediaUrl(post.coverImage ?? null) || mediaUrl(post.ogImage ?? null);
   const cat = post.categories?.[0];
 
   const articleJsonLd = {
@@ -127,25 +187,59 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
           </Link>
         </nav>
 
-        <header className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)] lg:items-center">
-          <div>
-            {cat && (
-              <Link
-                href={`/${category}`}
-                className="text-xs font-bold uppercase tracking-[0.2em] text-primary"
-              >
-                {cat.name}
-              </Link>
-            )}
-            <h1 className="mt-5 max-w-3xl font-display text-4xl font-bold leading-[1.05] tracking-tight text-ink sm:text-5xl">
-              {post.title}
-            </h1>
-            {post.excerpt && (
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/55">
-                {post.excerpt}
-              </p>
-            )}
-            <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold uppercase tracking-[0.12em] text-ink/45">
+        <header className="mt-8">
+          {cat && (
+            <Link
+              href={`/${category}`}
+              className="text-xs font-bold uppercase tracking-[0.2em] text-primary"
+            >
+              {cat.name}
+            </Link>
+          )}
+          <h1 className="mt-5 font-display !text-[2rem] font-bold leading-[1.05] tracking-tight text-ink">
+            {post.title}
+          </h1>
+          {post.excerpt && (
+            <p className="mt-6 text-lg leading-8 text-ink/55">
+              {post.excerpt}
+            </p>
+          )}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <span className="text-xs font-bold uppercase tracking-[0.18em] text-ink/45">Share This Article</span>
+            <a
+              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Share on Facebook"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
+            >
+              f
+            </a>
+            <a
+              href={`https://x.com/intent/tweet?url=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}&text=${encodeURIComponent(post.title)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Share on X"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
+            >
+              X
+            </a>
+            <a
+              href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}`}
+              aria-label="Share by email"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
+            >
+              @
+            </a>
+          </div>
+        </header>
+
+        <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          <div className="w-full" data-testid="post-body">
+            <PostContent html={post.content} />
+            <PostPriceComparison post={post} />
+
+            <div className="mt-14 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-ink/10 pt-8 text-xs font-semibold uppercase tracking-[0.12em] text-ink/45">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink/10 text-ink/40">
                 N
               </span>
@@ -153,56 +247,55 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
               <span>{fmtDate(post.publishedAt)}</span>
               {post.readingTimeMinutes && <span>{post.readingTimeMinutes} min read</span>}
             </div>
-          </div>
 
-          {cover && (
-            <div className="overflow-hidden" data-testid="post-hero-image">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={cover}
-                alt={post.coverImage?.alternativeText || post.title}
-                className="h-[320px] w-full object-contain sm:h-[420px] lg:h-[500px]"
-              />
+            <div className="mt-8 border-y border-ink/10 py-8 text-sm leading-7 text-ink/60">
+              <strong className="text-ink">Affiliate disclosure.</strong> {SITE.name} earns a
+              commission when you buy through links on this page, at no extra cost to you.
+              Prices and availability are accurate as of {fmtDate(post.updatedAt)} and subject to change.
             </div>
-          )}
-        </header>
 
-        <div className="mx-auto mt-16 grid max-w-7xl gap-12 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-          <aside className="space-y-10 lg:sticky lg:top-28" data-testid="post-side-rail">
-            <div>
-              <h2 className="font-display text-xl font-bold text-ink">Share This Article</h2>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <a
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Share on Facebook"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
-                >
-                  f
-                </a>
-                <a
-                  href={`https://x.com/intent/tweet?url=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}&text=${encodeURIComponent(post.title)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Share on X"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
-                >
-                  X
-                </a>
-                <a
-                  href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}`}
-                  aria-label="Share by email"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
-                >
-                  @
-                </a>
+            <div className="mt-10 bg-muted p-8" data-testid="post-author-box">
+              <div className="grid gap-6 sm:grid-cols-[72px_minmax(0,1fr)]">
+                <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white text-2xl font-bold text-ink/30">
+                  N
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-ink/45">Written by</p>
+                  <h2 className="mt-2 font-display text-xl font-bold text-ink">{SITE.name}</h2>
+                  <p className="mt-3 text-sm leading-7 text-ink/60">
+                    Product comparisons, reviews and practical buying guides for smart tech shoppers.
+                  </p>
+                </div>
               </div>
             </div>
 
+            <section className="mt-10" data-testid="post-comments">
+              <h3 className="font-display text-2xl font-bold tracking-tight text-ink">Comments</h3>
+              {comments.length > 0 ? (
+                <div className="mt-5 space-y-4">
+                  {comments.map((comment) => (
+                    <article key={comment.documentId ?? comment.id} className="border border-ink/10 bg-white p-5">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <h4 className="font-display text-base font-bold text-ink">{comment.authorName}</h4>
+                        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-ink/40">
+                          {fmtDate(comment.createdAt)}
+                        </span>
+                      </div>
+                      <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/65">{comment.body}</p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm leading-6 text-ink/55">No comments yet. Start the conversation.</p>
+              )}
+              <CommentForm postDocumentId={post.documentId ?? ''} />
+            </section>
+          </div>
+
+          <aside className="space-y-10 lg:sticky lg:top-28" data-testid="post-side-rail">
             {recentPosts.length > 0 && (
-              <div className="rounded border border-[#d9e4f2] bg-[#f5f9fd] p-5">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-[#4778e6]">Latest Posts</h2>
+              <div className="rounded p-5 shadow-[rgba(17,17,26,0.1)_0px_1px_0px]">
+                <h5 className="text-sm font-bold uppercase tracking-wide text-[#111111]">Latest Posts</h5>
                 <div className="mt-4 space-y-4">
                   {recentPosts.map((recent) => {
                     const recentImage = mediaUrl(recent.coverImage ?? null) ?? firstImageUrl(recent.content);
@@ -237,67 +330,94 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
                 </div>
               </div>
             )}
-
-            <div>
-              <h2 className="font-display text-xl font-bold text-ink">Newsletter</h2>
-              <p className="mt-3 text-sm italic leading-6 text-ink/55">
-                Smart buying notes and product picks, no noise.
-              </p>
-              <Link
-                href="/contact"
-                className="mt-6 inline-flex rounded-full bg-primary px-7 py-3 text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:bg-primary-emphasis"
-              >
-                Subscribe
-              </Link>
-            </div>
-          </aside>
-
-          <div className="min-w-0">
-            <PostContent html={post.content} />
-            <PostPriceComparison post={post} />
-
-            <div className="mt-14 border-y border-ink/10 py-8 text-sm leading-7 text-ink/60">
-              <strong className="text-ink">Affiliate disclosure.</strong> {SITE.name} earns a
-              commission when you buy through links on this page, at no extra cost to you.
-              Prices and availability are accurate as of {fmtDate(post.updatedAt)} and subject to change.
-            </div>
-
-            <div className="mt-10 bg-muted p-8" data-testid="post-author-box">
-              <div className="grid gap-6 sm:grid-cols-[72px_minmax(0,1fr)]">
-                <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white text-2xl font-bold text-ink/30">
-                  N
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-ink/45">Written by</p>
-                  <h2 className="mt-2 font-display text-xl font-bold text-ink">{SITE.name}</h2>
-                  <p className="mt-3 text-sm leading-7 text-ink/60">
-                    Product comparisons, reviews and practical buying guides for smart tech shoppers.
-                  </p>
+            {merchantProducts && (
+              <div className="rounded p-5 shadow-[rgba(17,17,26,0.1)_0px_1px_0px]" data-testid="sidebar-merchant-products">
+                <h5 className="text-sm font-bold uppercase tracking-wide text-[#111111]">
+                  Top {merchantProducts.merchant.label} Products
+                </h5>
+                <div className="mt-4 space-y-4">
+                  {merchantProducts.products.map((product) => (
+                    <a
+                      key={`${merchantProducts.merchant.key}-${product.rank ?? product.url}`}
+                      href={product.url}
+                      target="_blank"
+                      rel="nofollow sponsored noopener"
+                      className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 transition hover:opacity-80"
+                    >
+                      <span className="block h-16 w-16 overflow-hidden rounded bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={product.image ?? ''}
+                          alt={product.title}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="line-clamp-2 text-sm font-normal leading-snug text-[#123d83]">
+                          {product.title}
+                        </span>
+                        <span className="mt-1 block text-sm font-normal leading-none text-[#6a83aa]">
+                          {product.price || 'Check current price'}
+                          {product.rank ? ` · #${product.rank}` : ''}
+                        </span>
+                      </span>
+                    </a>
+                  ))}
                 </div>
               </div>
-            </div>
-
-            <Link
-              href="/contact"
-              className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-ink px-8 py-4 text-xs font-bold uppercase tracking-[0.18em] text-white transition hover:bg-primary"
-            >
-              Leave a comment
-            </Link>
-          </div>
+            )}
+          </aside>
         </div>
 
         {related.length > 0 && (
           <aside className="mt-24 border-t border-ink/10 py-16">
-            <div className="mx-auto max-w-5xl text-center">
-              <h2 className="font-display text-3xl font-bold tracking-tight text-ink">Editor's Choice</h2>
+            <div className="w-full text-left">
+              <h3 className="font-display text-3xl font-bold tracking-tight text-ink">Editor's Choice</h3>
               <p className="mt-2 text-sm uppercase tracking-[0.16em] text-ink/45">
                 More in {cat?.name ?? categoryName(category)}
               </p>
             </div>
-            <div className="mt-10 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-              {related.map((r) => (
-                <PostCard key={r.id} post={r} variant="tile" />
-              ))}
+            <div className="mt-10" data-testid="editors-choice-slider">
+              <ProductCarousel
+                items={related.map((r) => {
+                  const img = mediaUrl(r.coverImage ?? null) ?? firstImageUrl(r.content);
+                  const href = postPath(r);
+
+                  return (
+                    <article key={r.id} className="group flex h-full flex-col" data-testid={`editors-choice-${r.slug}`}>
+                      <Link href={href} className="block overflow-hidden rounded-3xl bg-muted p-5">
+                        {img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={img}
+                            alt={r.coverImage?.alternativeText || r.title}
+                            className="aspect-[4/3] w-full object-contain mix-blend-multiply transition duration-500 group-hover:scale-[1.02]"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="aspect-[4/3] w-full bg-gradient-to-br from-primary-hover to-primary" />
+                        )}
+                      </Link>
+                      <div className="mt-4">
+                        {r.categories?.[0] && (
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                            {r.categories[0].name}
+                          </p>
+                        )}
+                        <Link href={href}>
+                          <h4 className="mt-2 line-clamp-2 font-display !text-base font-bold leading-snug text-ink transition group-hover:text-primary">
+                            {r.title}
+                          </h4>
+                        </Link>
+                        <p className="mt-3 text-xs text-ink/50">
+                          {fmtDate(r.publishedAt)} · {r.readingTimeMinutes ?? 5} min
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
+              />
             </div>
           </aside>
         )}

@@ -1,6 +1,7 @@
 import qs from 'qs';
 
-const BASE = (process.env.NEXT_PUBLIC_STRAPI_URL || 'https://cms.fxnstudio.com').replace(/\/$/, '');
+const PUBLIC_BASE = (process.env.NEXT_PUBLIC_STRAPI_URL || 'https://cms.fxnstudio.com').replace(/\/$/, '');
+const API_BASE = (process.env.STRAPI_INTERNAL_URL || process.env.NEXT_PUBLIC_STRAPI_URL || 'https://cms.fxnstudio.com').replace(/\/$/, '');
 const TOKEN = process.env.STRAPI_API_TOKEN;
 
 // commerce-products is a Strapi pool SHARED with other sites (e.g. bestlooking.skin).
@@ -194,7 +195,7 @@ type ListResponse<T> = {
 
 async function strapiFetch<T>(path: string, params?: Record<string, unknown>, revalidate = 60): Promise<T> {
   const query = params ? '?' + qs.stringify(params, { encodeValuesOnly: true }) : '';
-  const url = `${BASE}/api/${path}${query}`;
+  const url = `${API_BASE}/api/${path}${query}`;
   const res = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
@@ -210,7 +211,7 @@ async function strapiFetch<T>(path: string, params?: Record<string, unknown>, re
 
 export function mediaUrl(img: StrapiImage): string | null {
   if (!img?.url) return null;
-  return img.url.startsWith('http') ? img.url : `${BASE}${img.url}`;
+  return img.url.startsWith('http') ? img.url : `${PUBLIC_BASE}${img.url}`;
 }
 
 const POST_POPULATE = ['coverImage', 'ogImage', 'categories', 'gallery'];
@@ -282,12 +283,15 @@ export async function getCategory(slug: string): Promise<NxtCategory | null> {
 }
 
 export async function listCommerceProducts(
-  opts: { page?: number; pageSize?: number; q?: string } = {},
+  opts: { page?: number; pageSize?: number; q?: string; category?: string } = {},
 ) {
   const filters: Record<string, unknown> = {
     productStatus: { $eq: 'active' },
     tags: { $containsi: SITE_PRODUCT_TAG },
   };
+  if (opts.category?.trim()) {
+    filters.categories = { slug: { $eqi: opts.category.trim() } };
+  }
   if (opts.q?.trim()) {
     const q = opts.q.trim();
     filters.$or = [
@@ -307,6 +311,23 @@ export async function listCommerceProducts(
     pagination: { page: opts.page ?? 1, pageSize: opts.pageSize ?? 24 },
     filters,
   });
+}
+
+export async function listCommerceCategories(): Promise<CommerceCategory[]> {
+  const res = await strapiFetch<ListResponse<CommerceCategory>>('commerce-categories', {
+    filters: { categoryStatus: { $eq: 'active' } },
+    sort: ['name:asc'],
+    pagination: { pageSize: 100 },
+  });
+  return res.data;
+}
+
+export async function getCommerceCategory(slug: string): Promise<CommerceCategory | null> {
+  const res = await strapiFetch<ListResponse<CommerceCategory>>('commerce-categories', {
+    filters: { slug: { $eqi: slug }, categoryStatus: { $eq: 'active' } },
+    pagination: { pageSize: 1 },
+  });
+  return res.data?.[0] ?? null;
 }
 
 export async function getCommerceProduct(slug: string): Promise<CommerceProduct | null> {
@@ -452,6 +473,31 @@ export type CommerceReview = {
   body: string;
   createdAt: string;
 };
+
+export type NxtComment = {
+  id: number;
+  documentId?: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+};
+
+export async function listPostComments(postDocumentId: string): Promise<NxtComment[]> {
+  if (!postDocumentId) return [];
+  try {
+    const res = await strapiFetch<ListResponse<NxtComment>>('nxt-comments', {
+      filters: {
+        post: { documentId: { $eq: postDocumentId } },
+        commentStatus: { $eq: 'approved' },
+      },
+      sort: ['createdAt:desc'],
+      pagination: { pageSize: 50 },
+    });
+    return res.data;
+  } catch {
+    return [];
+  }
+}
 
 // Approved reviews for a product (shown in the Reviews tab).
 export async function listProductReviews(productDocumentId: string): Promise<CommerceReview[]> {

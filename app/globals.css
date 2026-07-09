@@ -61,6 +61,13 @@
   font-weight: 900;
   font-display: swap;
 }
+@font-face {
+  font-family: 'Urbanist';
+  src: url('/fonts/UrbanistVariable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
@@ -69,7 +76,7 @@
 :root {
   color-scheme: light;
   --font-body: 'Outfit';
-  --font-heading: 'Outfit';
+  --font-heading: 'Urbanist';
 }
 
 html {
@@ -110,12 +117,28 @@ textarea {
   letter-spacing: inherit;
 }
 
-/* Global type scale (Standard). One place controls headings site-wide;
+/* Global type scale. One place controls headings site-wide;
    !important so it applies on every page without per-element overrides. */
-h1 { font-size: 60px !important; line-height: 1.05; letter-spacing: 0; }
-h2 { font-size: 40px !important; line-height: 1.05; letter-spacing: 0; }
-h3 { font-size: 26px !important; line-height: 1.05; letter-spacing: 0; }
-h4 { font-size: 21px !important; line-height: 1.05; letter-spacing: 0; }
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading), Arial, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+h1 { font-size: 3rem !important; line-height: 1.08; letter-spacing: 0; }
+article[data-testid^="post-"] header h1 {
+  font-size: 2.5rem !important;
+  line-height: 1.05;
+}
+h2 { font-size: 2rem !important; line-height: 1.1; letter-spacing: 0; }
+h3 { font-size: 1.625rem !important; line-height: 1.12; letter-spacing: 0; }
+h4 { font-size: 1.3125rem !important; line-height: 1.15; letter-spacing: 0; }
+h5 { font-size: 1.125rem !important; line-height: 1.2; letter-spacing: 0; }
+h6 { font-size: 1rem !important; line-height: 1.25; letter-spacing: 0; }
+h1, h2, h3, h4, h5, h6 { font-weight: 600 !important; }
 /* Product-card title: smaller and semibold (overrides the site-wide h3 rule). */
 h3.product-card-title { font-size: 15px !important; font-weight: 600 !important; }
 
@@ -193,21 +216,14 @@ h1, h2, h3, h4, h5, h6, h7,
     font-size: 16px;
   }
 
-  h1 {
-    font-size: 40px !important;
-  }
-
-  h2 {
-    font-size: 30px !important;
-  }
-
-  h3 {
-    font-size: 22px !important;
-  }
 }
 
 main[data-testid^="product-price-"] h1.product-title {
   font-size: 2rem !important;
+}
+
+main[data-testid^="product-price-"] h3 {
+  font-size: 1.1rem !important;
 }
 
 main[data-testid^="product-price-"] .product-main-image {
@@ -275,6 +291,10 @@ main[data-testid^="product-price-"] .product-offer-toggle:checked ~ * .show-less
   margin-bottom: 1rem;
   color: theme('colors.ink');
 }
+.post-content .nxt-merchant-deal-card > h2,
+.post-content .nxt-merchant-deal-card > h4 {
+  display: none;
+}
 .post-content > :where(h3) {
   font-family: theme('fontFamily.display');
   font-size: 1.375rem;
@@ -313,6 +333,206 @@ main[data-testid^="product-price-"] .product-offer-toggle:checked ~ * .show-less
 }
 .post-content :where(a:not(.gspb_row a, .gspb_col a, [class*="gspb_"] a)):hover {
   text-decoration: underline;
+}
+
+.post-content .nxt-product-card,
+.post-content .nxt-merchant-deal-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  align-items: center;
+  margin: 2rem 0;
+  padding: 1.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #ffffff;
+}
+.post-content > .nxt-product-card:first-child,
+.post-content > .nxt-merchant-deal-card:first-child {
+  margin-top: 0;
+}
+.post-content .nxt-product-card__image,
+.post-content .nxt-merchant-deal-card > a:has(img) {
+  display: block;
+  grid-row: 1 / span 2;
+  align-self: stretch;
+  padding: 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+}
+.post-content .nxt-product-card img,
+.post-content .nxt-merchant-deal-card > a:has(img) img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 220px;
+  object-fit: contain;
+}
+.post-content .nxt-product-card__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: theme('colors.primary.DEFAULT');
+}
+.post-content .nxt-product-card h3,
+.post-content .nxt-product-card h4 {
+  margin: 0;
+  font-family: theme('fontFamily.display');
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: theme('colors.ink');
+}
+.post-content .nxt-product-card ul,
+.post-content .nxt-merchant-deal-card > ul {
+  margin-top: 0.85rem;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+.post-content .nxt-merchant-deal-card > p {
+  grid-column: 2;
+  margin: 0.85rem 0 0;
+}
+.post-content .nxt-merchant-deal-card > p > a {
+  display: inline-flex;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  background: theme('colors.primary.DEFAULT');
+  color: #ffffff !important;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none !important;
+}
+.post-content .nxt-product-card__button {
+  display: inline-flex;
+  margin-top: 1rem;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  background: theme('colors.primary.DEFAULT');
+  color: #ffffff !important;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none !important;
+}
+@media (max-width: 640px) {
+  .post-content .nxt-product-card,
+  .post-content .nxt-merchant-deal-card {
+    grid-template-columns: 1fr;
+  }
+  .post-content .nxt-product-card__image,
+  .post-content .nxt-merchant-deal-card > a:has(img),
+  .post-content .nxt-merchant-deal-card > p {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+.post-content .nxt-feature-product-image {
+  margin: 0 0 2rem;
+  padding: 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+}
+.post-content .nxt-feature-product-image img {
+  display: block;
+  width: 100%;
+  max-height: 460px;
+  object-fit: contain;
+}
+
+.post-content .nxt-product-carousel {
+  margin: 2rem 0;
+  padding: 1.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #ffffff;
+}
+.post-content .nxt-product-carousel__heading {
+  margin: 0;
+  font-family: theme('fontFamily.display');
+  font-size: 1.2rem !important;
+  font-weight: 700;
+  line-height: 1.2;
+  color: theme('colors.ink');
+}
+.post-content .nxt-product-carousel__track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 3rem) / 4);
+  gap: 1rem;
+  margin-top: 1rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.post-content .nxt-product-carousel__track::-webkit-scrollbar {
+  display: none;
+}
+.post-content .nxt-product-carousel__item {
+  display: flex;
+  min-width: 0;
+  scroll-snap-align: start;
+  flex-direction: column;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  text-decoration: none !important;
+}
+.post-content .nxt-product-carousel__image {
+  display: flex;
+  height: 180px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  background: #ffffff;
+}
+.post-content .nxt-product-carousel__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.post-content .nxt-product-carousel__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.85rem;
+}
+.post-content .nxt-product-carousel__title {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: theme('colors.ink');
+}
+.post-content .nxt-product-carousel__meta {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: theme('colors.primary.DEFAULT');
+}
+.post-content .nxt-product-carousel__price {
+  margin: auto 0 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: theme('colors.ink');
+}
+@media (max-width: 760px) {
+  .post-content .nxt-product-carousel__track {
+    grid-auto-columns: minmax(0, 82%);
+  }
+  .post-content .nxt-product-carousel__image {
+    height: 220px;
+  }
 }
 
 /* Plain tables (WP-authored, not GSPB) — 1px #dddddd grid per design.
@@ -426,6 +646,31 @@ article[data-testid^="post-"] .post-content table th {
   --bs-btn-disabled-border-color: #0046be;
 }
 
+/* Single post page: full-width body — product tiles and paragraphs span the
+   content column without a side-rail squeeze. */
+article[data-testid^="post-"] .post-content {
+  width: 100%;
+  max-width: none;
+}
+article[data-testid^="post-"] .post-content > :where(p, h2, h3, h4, blockquote, hr, figure, pre) {
+  max-width: 100%;
+}
+article[data-testid^="post-"] .post-content .gspb_row__content {
+  max-width: 100%;
+}
+article[data-testid^="post-"] .post-content .cegg-grid-card,
+article[data-testid^="post-"] .post-content .cegg-list-card {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Single post body copy — Outfit for paragraphs and list items. */
+article[data-testid^="post-"] .post-content p,
+article[data-testid^="post-"] .post-content ul li,
+article[data-testid^="post-"] .post-content ul li a {
+  font-family: 'Outfit', Arial, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+}
+
 /* Single post page base surface. */
 article[data-testid^="post-"] {
   background-color: #ffffff;
@@ -435,16 +680,6 @@ article[data-testid^="post-"] {
    comparison box and dividers so the two-product layout reads visually. */
 article[data-testid^="post-"][data-category="product-comparisons"] .post-content * {
   border-color: #eeeeee !important;
-}
-
-article[data-testid^="post-"] .post-content > p:first-of-type::first-letter {
-  float: left;
-  margin: 0.08em 0.16em 0 0;
-  font-family: var(--font-heading), system-ui, sans-serif;
-  font-size: 4.4rem;
-  font-weight: 700;
-  line-height: 0.82;
-  color: theme('colors.ink');
 }
 
 /* ---------------------------------------------------------------------------

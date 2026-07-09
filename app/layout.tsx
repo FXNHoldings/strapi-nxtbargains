@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import ClientErrorReporter from '@/components/ClientErrorReporter';
 import GeniuslinkScripts from '@/components/GeniuslinkScripts';
 import { SITE } from '@/lib/site';
 
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        <ClientErrorReporter />
         <GeniuslinkScripts />
       </body>
     </html>
