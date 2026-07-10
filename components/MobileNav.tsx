@@ -147,7 +147,7 @@ export default function MobileNav({ items }: { items: NavItem[] }) {
                     <Link
                       href={item.href}
                       onClick={() => setOpen(false)}
-                      className="flex items-center justify-between py-4 font-['Urbanist'] text-lg font-medium tracking-tight text-ink transition hover:text-primary"
+                      className="flex items-center justify-between py-4 font-['Outfit'] text-lg font-semibold tracking-tight text-ink transition hover:text-primary"
                     >
                       {item.label}
                       <svg
@@ -171,7 +171,7 @@ export default function MobileNav({ items }: { items: NavItem[] }) {
                             <Link
                               href={child.href}
                               onClick={() => setOpen(false)}
-                              className="block py-2 font-['Urbanist'] text-sm font-medium text-ink/65 transition hover:text-primary"
+                              className="block py-2 font-['Outfit'] text-sm font-semibold text-ink/65 transition hover:text-primary"
                             >
                               {child.label}
                             </Link>

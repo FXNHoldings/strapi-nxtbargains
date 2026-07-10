@@ -11,9 +11,13 @@ import { mediaUrl, type CommerceProduct } from '@/lib/strapi';
 export default function CommerceProductCard({
   product,
   showStoreLogo = false,
+  showCompareButton = true,
+  titleClassName = '',
 }: {
   product: CommerceProduct;
   showStoreLogo?: boolean;
+  showCompareButton?: boolean;
+  titleClassName?: string;
 }) {
   const rows = collectOfferRows(product);
   const best = bestOffer(rows);
@@ -25,13 +29,13 @@ export default function CommerceProductCard({
 
   return (
     <article className="group flex h-full flex-col border border-ink/10 bg-white" data-testid={`commerce-product-${product.slug}`}>
-      <Link href={`/products/${product.slug}`} className="block overflow-hidden bg-white">
+      <Link href={`/products/${product.slug}`} className="commerce-product-image-box grid overflow-hidden bg-white">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={image}
             alt={product.primaryImage?.alternativeText || product.name}
-            className="h-52 w-full object-contain p-5 mix-blend-multiply transition duration-500 group-hover:scale-[1.03]"
+            className="commerce-product-image h-52 w-full object-contain p-5 mix-blend-multiply transition duration-500 group-hover:scale-[1.03]"
           />
         ) : (
           <span className="flex h-52 w-full items-center justify-center bg-muted px-6 text-center font-display text-2xl font-bold text-ink/25">
@@ -56,7 +60,7 @@ export default function CommerceProductCard({
           </p>
         )}
         <Link href={`/products/${product.slug}`}>
-          <h3 className="product-card-title mt-3 line-clamp-2 font-display leading-tight text-ink transition group-hover:text-primary">
+          <h3 className={`product-card-title mt-3 line-clamp-2 font-display leading-tight text-ink transition group-hover:text-primary ${titleClassName}`}>
             {product.name}
           </h3>
         </Link>
@@ -77,14 +81,16 @@ export default function CommerceProductCard({
           )}
         </div>
 
-        <div className="mt-4 flex justify-start">
-          <Link
-            href={`/products/${product.slug}`}
-            className="inline-flex bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis"
-          >
-            Compare
-          </Link>
-        </div>
+        {showCompareButton && (
+          <div className="mt-4 flex justify-start">
+            <Link
+              href={`/products/${product.slug}`}
+              className="inline-flex bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis"
+            >
+              Compare
+            </Link>
+          </div>
+        )}
       </div>
     </article>
   );

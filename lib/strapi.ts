@@ -201,7 +201,7 @@ async function strapiFetch<T>(path: string, params?: Record<string, unknown>, re
       'Content-Type': 'application/json',
       ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
     },
-    next: { revalidate },
+    ...(revalidate <= 0 ? { cache: 'no-store' as const } : { next: { revalidate } }),
   });
   if (!res.ok) {
     throw new Error(`Strapi ${res.status} on ${url}: ${await res.text().catch(() => '')}`);
@@ -335,7 +335,7 @@ export async function getCommerceProduct(slug: string): Promise<CommerceProduct 
     filters: { slug: { $eq: slug }, productStatus: { $eq: 'active' }, tags: { $containsi: SITE_PRODUCT_TAG } },
     populate: COMMERCE_PRODUCT_POPULATE,
     pagination: { pageSize: 1 },
-  });
+  }, 0);
   return res.data?.[0] ?? null;
 }
 

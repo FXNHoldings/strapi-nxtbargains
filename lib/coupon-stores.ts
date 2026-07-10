@@ -39,6 +39,21 @@ const KNOWN_STORE_DOMAINS: Array<[RegExp, string]> = [
   [/newegg/, 'newegg.com'],
 ];
 
+const SOURCE_STORE_LOGOS: Array<[RegExp, string]> = [
+  [/amazon/, '/logos/amazon-logo.svg'],
+  [/ebay/, '/logos/ebay-logo.svg'],
+  [/walmart/, '/logos/walmart-logo.svg'],
+  [/newegg/, '/logos/newegg-logo.svg'],
+  [/hp/, '/logos/hp-logo.svg'],
+  [/dell/, '/logos/dell-logo.svg'],
+  [/lenovo/, '/logos/lenovo-logo.svg'],
+  [/samsung/, '/logos/samsung-logo.svg'],
+  [/apple/, '/logos/apple-logo.svg'],
+  [/target/, '/logos/target-logo.svg'],
+  [/nike/, '/logos/nike-logo.svg'],
+  [/argos/, '/logos/argos-logo.svg'],
+];
+
 export function listCouponStores(): CouponStoreCache {
   if (!existsSync(CACHE_FILE)) return { stores: [] };
   try {
@@ -139,10 +154,18 @@ export function countryName(code: string) {
 }
 
 export function storeLogoUrl(store: Pick<CouponStore, 'name' | 'logo' | 'domain' | 'url'>) {
+  const sourceLogo = sourceLogoForStore(store.name);
+  if (sourceLogo) return sourceLogo;
+
   const domain = knownStoreDomain(store.name) || store.domain || domainFromUrl(store.url);
   if (domain) return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
   if (store.logo) return store.logo;
   return '';
+}
+
+function sourceLogoForStore(name: string) {
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return SOURCE_STORE_LOGOS.find(([pattern]) => pattern.test(normalized))?.[1] ?? '';
 }
 
 function knownStoreDomain(name: string) {

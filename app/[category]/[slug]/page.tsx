@@ -204,34 +204,6 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
               {post.excerpt}
             </p>
           )}
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <span className="text-xs font-bold uppercase tracking-[0.18em] text-ink/45">Share This Article</span>
-            <a
-              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Share on Facebook"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
-            >
-              f
-            </a>
-            <a
-              href={`https://x.com/intent/tweet?url=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}&text=${encodeURIComponent(post.title)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Share on X"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
-            >
-              X
-            </a>
-            <a
-              href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}`}
-              aria-label="Share by email"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
-            >
-              @
-            </a>
-          </div>
         </header>
 
         <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
@@ -293,6 +265,37 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
           </div>
 
           <aside className="space-y-10 lg:sticky lg:top-28" data-testid="post-side-rail">
+            <div className="rounded p-5 shadow-[rgba(17,17,26,0.1)_0px_1px_0px]" data-testid="sidebar-share">
+              <h5 className="text-sm font-bold uppercase tracking-wide text-[#111111]">Share This Article</h5>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <a
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Share on Facebook"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
+                >
+                  f
+                </a>
+                <a
+                  href={`https://x.com/intent/tweet?url=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}&text=${encodeURIComponent(post.title)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Share on X"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
+                >
+                  X
+                </a>
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(`${SITE.url}/${category}/${post.slug}`)}`}
+                  aria-label="Share by email"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-sm font-bold text-ink transition hover:border-primary hover:text-primary"
+                >
+                  @
+                </a>
+              </div>
+            </div>
+
             {recentPosts.length > 0 && (
               <div className="rounded p-5 shadow-[rgba(17,17,26,0.1)_0px_1px_0px]">
                 <h5 className="text-sm font-bold uppercase tracking-wide text-[#111111]">Latest Posts</h5>

@@ -167,8 +167,12 @@ export default async function HomePage() {
       {bestSellerGroups.length > 0 && (
         <section className="pt-[30px] pb-14 sm:pb-[72px]" data-testid="home-best-sellers">
           <div className="mx-auto max-w-[1366px] px-6">
-            <SectionHead eyebrow="Top picks" title="Best Sellers" intro="The top-ranked products across the major marketplaces, refreshed daily." />
-            <div className="mt-9"><MarketplaceBestSellers groups={bestSellerGroups} /></div>
+            <MarketplaceBestSellers
+              groups={bestSellerGroups}
+              eyebrow="Top picks"
+              title="Best Sellers"
+              intro="The top-ranked products across the major marketplaces, refreshed daily."
+            />
           </div>
         </section>
       )}
@@ -219,7 +223,13 @@ export default async function HomePage() {
       {coupons.length > 0 && (
         <section className="pb-14 sm:pb-[72px]" data-testid="home-coupons">
           <div className="mx-auto max-w-[1366px] px-6">
-            <SectionHead eyebrow="Coupon codes" title="Today's best coupon codes" intro="Quick savings from the same coupon feed used on the coupons page." cta={{ href: '/coupons', label: 'All coupons' }} />
+            <SectionHead
+              eyebrow="Coupon codes"
+              title="Today's best coupon codes"
+              intro="Quick savings from the same coupon feed used on the coupons page."
+              introClassName="text-[14px]"
+              cta={{ href: '/coupons', label: 'All coupons' }}
+            />
             <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {coupons.map((coupon) => (
                 <CouponCodeCard key={`${coupon.store}-${coupon.code ?? coupon.title}`} coupon={coupon} />
@@ -239,11 +249,13 @@ function SectionHead({
   eyebrow,
   title,
   intro,
+  introClassName = '',
   cta,
 }: {
   eyebrow: string;
   title: string;
   intro?: string;
+  introClassName?: string;
   cta?: { href: string; label: string };
 }) {
   return (
@@ -251,7 +263,7 @@ function SectionHead({
       <div className="max-w-[52ch]">
         <p className="text-[0.74rem] font-bold uppercase tracking-[0.16em] text-primary">{eyebrow}</p>
         <h2 className="mt-2 font-display !text-[clamp(1.35rem,2.4vw,1.65rem)] font-extrabold leading-[1.12] tracking-[-0.02em] text-ink">{title}</h2>
-        {intro && <p className="mt-2 text-[0.98rem] leading-relaxed text-ink/55">{intro}</p>}
+        {intro && <p className={`mt-2 text-[0.98rem] leading-relaxed text-ink/55 ${introClassName}`}>{intro}</p>}
       </div>
       {cta && (
         <Link href={cta.href} className="inline-flex shrink-0 items-center gap-[7px] rounded-[10px] border border-ink/10 bg-white px-4 py-2.5 font-display text-[0.9rem] font-semibold text-ink transition hover:-translate-y-px hover:border-primary hover:text-primary">
@@ -301,17 +313,17 @@ function TrendingCard({ product }: { product: CommerceProduct }) {
   const category = product.categories?.[0]?.name ?? product.category ?? 'Product';
   return (
     <div className="group flex flex-col rounded-2xl border border-ink/10 bg-white p-[18px] transition hover:-translate-y-1.5 hover:shadow-[0_26px_46px_-26px_rgba(13,27,42,0.42)]">
-      <Link href={`/products/${product.slug}`} className="mb-3.5 grid aspect-square place-items-center overflow-hidden rounded-[11px] bg-white">
+      <Link href={`/products/${product.slug}`} className="trending-image-box mb-3.5 grid aspect-square place-items-center overflow-hidden rounded-[11px] bg-white">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt={product.name} className="h-full w-full object-contain p-3 mix-blend-multiply transition duration-500 group-hover:scale-[1.04]" />
+          <img src={image} alt={product.name} className="trending-image h-full w-full object-contain p-3 mix-blend-multiply transition duration-500 group-hover:scale-[1.04]" />
         ) : (
           <span className="font-display text-lg font-bold text-ink/25">NXT</span>
         )}
       </Link>
       <span className="text-[0.7rem] font-bold uppercase tracking-[0.05em] text-primary">{category}</span>
       <Link href={`/products/${product.slug}`}>
-        <h3 className="product-card-title mb-3 mt-1.5 line-clamp-2 h-[3.4em] leading-[1.3] text-ink transition group-hover:text-primary">{product.name}</h3>
+        <h3 className="product-card-title mb-3 mt-1.5 line-clamp-2 h-[2.6em] overflow-hidden leading-[1.3] text-ink transition group-hover:text-primary">{product.name}</h3>
       </Link>
       <div className="mt-auto flex items-center justify-between border-t border-ink/10 pt-3">
         <div className="text-[0.74rem] text-ink/55">

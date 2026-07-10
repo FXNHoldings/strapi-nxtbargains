@@ -2,28 +2,44 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { SECTIONS, SITE } from '@/lib/site';
 import MobileNav from './MobileNav';
+import StickyHeaderShadow from './StickyHeaderShadow';
 
 const NAV = [
   {
+    href: '/products',
+    label: 'Products',
+    children: [
+      { href: '/category/smart-phones', label: 'Smart Phones' },
+      { href: '/category/smartwatches', label: 'Smartwatches' },
+      { href: '/category/tablets', label: 'Tablets' },
+      { href: '/category/laptops', label: 'Laptops' },
+      { href: '/category/smart-light-bulbs', label: 'Smart Light Bulbs' },
+      { href: '/category/smart-tvs', label: 'Smart TVs' },
+      { href: '/category/headphones', label: 'Headphones' },
+      { href: '/category/raspberry-pi', label: 'Raspberry PI' },
+    ],
+  },
+  { href: '/best-deals', label: 'Best Deals' },
+  {
     href: '/coupons',
     label: 'Coupons',
-    children: [{ href: '/stores', label: 'Stores' }],
+    children: [
+      { href: '/stores', label: 'Stores' },
+      { href: '/brands', label: 'Brands' },
+    ],
   },
   {
     href: '/deals',
-    label: 'All Articles',
-    children: SECTIONS.map((section) => ({
-      href: `/${section.slug}`,
-      label: section.title,
-    })),
+    label: 'Blog',
+    children: [
+      ...SECTIONS.map((section) => ({
+        href: `/${section.slug}`,
+        label: section.title,
+      })),
+      { href: '/deals', label: 'Deals' },
+    ],
   },
-  { href: '/deals', label: 'Best Deals' },
   { href: '/price-drops', label: 'Price Drops' },
-  {
-    href: '/products',
-    label: 'Products',
-    children: [{ href: '/category/smart-phones', label: 'Smart Phones' }],
-  },
 ];
 
 const navTestId = (label: string) => `nav-${label.toLowerCase().replace(/\s+/g, '-')}`;
@@ -31,9 +47,10 @@ const navTestId = (label: string) => `nav-${label.toLowerCase().replace(/\s+/g, 
 export default function Header() {
   return (
     <header
-      className="sticky top-0 z-50 border-b border-ink/10 bg-white/85 backdrop-blur"
+      className="sticky top-0 z-50 border-b border-ink/10 bg-white/85 backdrop-blur transition-shadow"
       data-testid="site-header"
     >
+      <StickyHeaderShadow />
       <div className="mx-auto flex h-16 max-w-[1366px] items-center justify-between gap-4 px-4 sm:h-[84px] sm:px-6">
         {/* Logo */}
         <Link
@@ -48,7 +65,7 @@ export default function Header() {
             width={450}
             height={218}
             priority
-            className="h-9 w-auto sm:h-12"
+            className="h-10 w-auto"
           />
         </Link>
 
@@ -58,12 +75,12 @@ export default function Header() {
           aria-label="Primary"
           data-testid="primary-nav"
         >
-          <ul className="flex items-center gap-1 font-['Urbanist'] text-[15px] font-medium tracking-[0.2px]">
+          <ul className="flex items-center gap-1">
             {NAV.map((item) => (
               <li key={`${item.label}-${item.href}`} className="group relative">
                 <Link
                   href={item.href}
-                  className="inline-flex items-center rounded-lg px-3 py-2 font-['Urbanist'] text-[15px] font-medium tracking-[0.2px] text-[#111111] transition hover:bg-ink/[0.04] hover:text-[#111111]"
+                  className="top-nav-link inline-flex items-center px-3 py-2 font-['Outfit'] text-[#111111] transition hover:text-[#111111]"
                   data-testid={navTestId(item.label)}
                 >
                   {item.label}
@@ -90,7 +107,7 @@ export default function Header() {
                         <Link
                           key={child.href}
                           href={child.href}
-                          className="block rounded-lg px-3 py-2 font-['Urbanist'] text-sm font-medium text-ink/75 transition hover:bg-ink/[0.04] hover:text-primary"
+                          className="top-nav-dropdown-link block px-3 py-2 font-['Outfit'] text-sm text-ink/75 transition hover:text-primary"
                         >
                           {child.label}
                         </Link>

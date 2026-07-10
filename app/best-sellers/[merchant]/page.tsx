@@ -5,6 +5,7 @@ import BestSellerCard, { MARKETPLACE_LABEL } from '@/components/BestSellerCard';
 import {
   BEST_SELLER_MARKETPLACES,
   getBestSellerMarketplace,
+  listBestSellerCategoryGroupsForMarketplace,
   listBestSellersForMarketplace,
 } from '@/lib/best-sellers';
 import { SITE } from '@/lib/site';
@@ -35,6 +36,8 @@ export default async function MarketplaceBestSellersPage({ params }: { params: P
   if (!marketplace) notFound();
 
   const items = listBestSellersForMarketplace(marketplace.key);
+  const categoryGroups = listBestSellerCategoryGroupsForMarketplace(marketplace.key);
+  const showCategoryGroups = categoryGroups.length > 1 || categoryGroups[0]?.key !== 'top-products';
 
   return (
     <main data-testid={`best-sellers-${marketplace.key}-page`}>
@@ -54,24 +57,24 @@ export default async function MarketplaceBestSellersPage({ params }: { params: P
         </div>
       </section>
 
-      <section className="bg-white py-12 sm:py-16">
+      <section className="bg-white pb-12 pt-6 sm:pb-16 sm:pt-8">
         <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Current ranking</p>
-              <h2 className="mt-2 font-display text-3xl font-bold text-ink">
+              <h4 className="mt-2 font-display text-2xl font-bold text-ink">
                 Top {MARKETPLACE_LABEL[marketplace.key]} products
-              </h2>
+              </h4>
             </div>
-            <nav className="flex flex-wrap gap-2" aria-label="Best seller marketplaces">
+            <nav className="flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-end sm:overflow-visible" aria-label="Best seller marketplaces">
               {BEST_SELLER_MARKETPLACES.map((option) => (
                 <Link
                   key={option.key}
                   href={`/best-sellers/${option.key}`}
-                  className={`border px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] transition ${
+                  className={`best-seller-tab shrink-0 border bg-white px-4 py-2 font-display text-[0.78rem] font-bold leading-none transition hover:border-[#0046be] hover:text-[#0046be] sm:px-[18px] sm:text-[0.82rem] ${
                     option.key === marketplace.key
-                      ? 'border-primary bg-primary text-white'
-                      : 'border-ink/15 text-ink/60 hover:border-primary hover:text-primary'
+                      ? 'border-[#0046be] text-[#0046be]'
+                      : 'border-[#c5cbd5] text-ink hover:bg-white'
                   }`}
                 >
                   {option.label}
@@ -80,12 +83,52 @@ export default async function MarketplaceBestSellersPage({ params }: { params: P
             </nav>
           </div>
 
-          {items.length > 0 ? (
-            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {items.map((item) => (
-                <BestSellerCard key={`${item.marketplace}-${item.asin || item.id || item.rank}`} item={item} />
+          {showCategoryGroups && (
+            <nav className="mt-6 flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible" aria-label={`${marketplace.label} best seller categories`}>
+              {categoryGroups.map((group, index) => (
+                <Link
+                  key={`category-tab-${group.key}`}
+                  href={`#best-sellers-${marketplace.key}-${group.key}`}
+                  className={`best-seller-tab shrink-0 border bg-white px-4 py-2 font-display text-[0.78rem] font-bold leading-none transition hover:border-[#0046be] hover:text-[#0046be] sm:px-[18px] sm:text-[0.82rem] ${
+                    index === 0
+                      ? 'border-[#0046be] text-[#0046be]'
+                      : 'border-[#c5cbd5] text-ink hover:bg-white'
+                  }`}
+                >
+                  {group.label}
+                </Link>
               ))}
-            </div>
+            </nav>
+          )}
+
+          {items.length > 0 ? (
+            showCategoryGroups ? (
+              <div className="mt-8 space-y-12">
+                {categoryGroups.map((group) => (
+                  <section key={group.key} aria-labelledby={`best-sellers-${marketplace.key}-${group.key}`}>
+                    <div className="flex flex-wrap items-end justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">{group.items.length} products</p>
+                        <h3 id={`best-sellers-${marketplace.key}-${group.key}`} className="mt-2 font-display text-2xl font-bold text-ink">
+                          {group.label}
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {group.items.map((item) => (
+                        <BestSellerCard key={`${group.key}-${item.marketplace}-${item.asin || item.id || item.rank}`} item={item} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {items.map((item) => (
+                  <BestSellerCard key={`${item.marketplace}-${item.asin || item.id || item.rank}`} item={item} />
+                ))}
+              </div>
+            )
           ) : (
             <div className="mt-8 border border-ink/10 bg-paper p-8">
               <h2 className="font-display text-2xl font-bold text-ink">No {marketplace.label} best sellers cached yet</h2>

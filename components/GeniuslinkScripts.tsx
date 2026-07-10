@@ -28,11 +28,15 @@ function convertAmazonLinks() {
 
 export default function GeniuslinkScripts() {
   const pathname = usePathname();
+  const disabled = pathname?.startsWith('/products/');
 
   useEffect(() => {
+    if (disabled) return undefined;
     const timer = window.setTimeout(convertAmazonLinks, 250);
     return () => window.clearTimeout(timer);
-  }, [pathname]);
+  }, [disabled, pathname]);
+
+  if (disabled) return null;
 
   return (
     <Script

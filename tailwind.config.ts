@@ -5,20 +5,32 @@ export default {
   theme: {
     extend: {
       colors: {
-        // NXT.Bargains palette — primary blue per brand spec
+        // Theme tokens are defined in app/globals.css.
         primary: {
-          DEFAULT: '#1556ee',
-          emphasis: '#0f43c0',
-          hover: '#c8d6fb',
-          pressed: '#0c389f',
+          DEFAULT: 'var(--colorBgPrimaryHighlight)',
+          emphasis: 'var(--colorBgPrimaryEmphasis)',
+          hover: 'var(--colorBgPrimaryHighlightHover)',
+          pressed: 'var(--colorBgPrimaryHighlightPressed)',
         },
         accent: {
-          DEFAULT: '#F59E0B',
-          emphasis: '#D97706',
+          DEFAULT: 'var(--colorBgSecondaryHover)',
+          emphasis: 'var(--colorBgSecondaryEmphasis)',
         },
-        ink: '#0F172A',
-        paper: '#FAFAF9',
-        muted: '#F1F5F9',
+        ink: 'var(--colorBgSurfaceInverse)',
+        paper: 'var(--colorBgDefaultMuted)',
+        muted: 'var(--colorBgDefaultMutedHover)',
+        surface: {
+          DEFAULT: 'var(--colorBgSurface)',
+          muted: 'var(--colorBgSurfaceMuted)',
+          hover: 'var(--colorBgSurfaceHover)',
+          pressed: 'var(--colorBgSurfacePressed)',
+          inverse: 'var(--colorBgSurfaceInverse)',
+          secondary: 'var(--colorBgSurfaceSecondary)',
+        },
+        success: {
+          DEFAULT: 'var(--colorBgSuccess)',
+          emphasis: 'var(--colorBgSuccessEmphasis)',
+        },
       },
       fontFamily: {
         sans: ['var(--font-body)', 'system-ui', 'sans-serif'],

@@ -9,6 +9,12 @@ export type BestSellerMarketplace = {
   description: string;
 };
 
+export type BestSellerCategoryGroup = {
+  key: string;
+  label: string;
+  items: BestSeller[];
+};
+
 export const BEST_SELLER_MARKETPLACES: BestSellerMarketplace[] = [
   {
     key: 'amazon',
@@ -82,6 +88,37 @@ export function listBestSellersForMarketplace(marketplaceKey: Marketplace): Best
   } catch {
     return [];
   }
+}
+
+export function listBestSellerCategoryGroupsForMarketplace(marketplaceKey: Marketplace): BestSellerCategoryGroup[] {
+  const items = listBestSellersForMarketplace(marketplaceKey);
+  const groups = new Map<string, BestSellerCategoryGroup>();
+
+  for (const item of items) {
+    const label = cleanCategoryLabel(item.categoryLabel ?? item.category);
+    const key = slugifyCategory(label);
+
+    if (!groups.has(key)) {
+      groups.set(key, { key, label, items: [] });
+    }
+
+    groups.get(key)?.items.push(item);
+  }
+
+  return Array.from(groups.values());
+}
+
+function cleanCategoryLabel(value?: string | null) {
+  const label = String(value ?? '').trim();
+  return label || 'Top products';
+}
+
+function slugifyCategory(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'top-products';
 }
 
 function geniusDestinationMap() {

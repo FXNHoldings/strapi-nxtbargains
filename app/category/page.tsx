@@ -33,7 +33,7 @@ export default async function ProductCategoriesPage() {
             Product categories.
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-ink/65 sm:text-lg">
-            Browse products by category and compare current merchant offers.
+            Explore NXT.Bargains product categories to find current deals across phones, laptops, smart home gear, audio, tablets, TVs, and everyday tech. Each category brings together products from trusted merchants so you can compare prices, check available offers, and move quickly toward the product that fits your budget.
           </p>
         </div>
       </section>

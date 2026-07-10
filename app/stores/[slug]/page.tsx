@@ -25,8 +25,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const { store, products } = await listStoreProducts(slug).catch(() => ({ store: null, products: [] }));
   if (!store) notFound();
 
-  // Server-render each card + its filter metadata, then hand off to the client
-  // filter component (cards can't be built inside a client component).
   const filterItems: StoreFilterItem[] = products.map((p) => {
     const best = bestOffer(collectOfferRows(p));
     const categories = (p.categories?.map((c) => c.name).filter(Boolean) as string[]) ?? [];
@@ -43,7 +41,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
 
   return (
     <main className="bg-white" data-testid={`store-${store.slug}`}>
-      {/* Full-width store header */}
       <section className="border-b border-ink/10 bg-paper">
         <div className="mx-auto max-w-[1366px] px-4 py-8 sm:px-6">
           <Link href="/stores" className="text-xs font-bold uppercase tracking-wider text-primary">← All stores</Link>
@@ -70,7 +67,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
         </div>
       </section>
 
-      {/* Filters (left, 25%) + products (right, 75%). Filter UI is client-side. */}
       <div className="mx-auto max-w-[1366px] px-4 py-10 sm:px-6">
         {products.length === 0 ? (
           <p className="text-ink/60">No products from this store yet.</p>

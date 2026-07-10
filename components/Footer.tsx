@@ -6,6 +6,7 @@ const shopLinks = [
   { href: '/products', label: 'All products' },
   { href: '/deals', label: "Today's deals" },
   { href: '/coupons', label: 'Coupons & promo codes' },
+  { href: '/brands', label: 'Brands' },
   { href: '/search', label: 'Search & compare' },
   { href: '/product-comparisons', label: 'Comparisons' },
 ];
@@ -38,10 +39,10 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-ink py-12 text-sm text-white/70" data-testid="site-footer">
+    <footer className="bg-[#232323] pt-[50px] text-sm text-white/70" data-testid="site-footer">
       <div className="mx-auto max-w-7xl px-6">
         {/* top: brand + columns */}
-        <div className="grid gap-8 border-b border-white/[0.13] pb-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="grid gap-8 border-b border-white/[0.13] pb-8 sm:grid-cols-2 lg:grid-cols-[40%_20%_20%_20%] lg:gap-0">
           {/* brand */}
           <div className="sm:col-span-2 lg:col-span-1">
             <Link href="/" className="mb-4 inline-flex items-center gap-2 font-display text-xl font-extrabold text-white" aria-label={`${SITE.name} home`}>
@@ -90,8 +91,11 @@ export default function Footer() {
           <span className="text-sm font-semibold text-primary">+ more</span>
         </div>
 
-        {/* bottom */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-6 text-xs text-white/55 sm:text-sm">
+      </div>
+
+      {/* bottom */}
+      <div className="mt-6 bg-black">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-xs text-white/55 sm:text-sm">
           <span>© {year} {SITE.name}. Independent price comparison — we may earn a commission on some links.</span>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             {legalLinks.map((l) => (

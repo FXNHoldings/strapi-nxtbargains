@@ -42,8 +42,48 @@ type Params = { slug: string };
 
 // Outbound buy link: Impact deep-link if the merchant matches an approved Impact
 // campaign (e.g. Whatnot), otherwise the offer's own affiliate/product URL.
-function buyUrl(offer: CommerceOffer): string {
-  return wrapImpactAffiliate(offer) ?? offerUrl(offer);
+function buyUrl(offer: CommerceOffer, product?: CommerceProduct): string {
+  return wrapImpactAffiliate(offer) ?? safeAffiliateUrl(offer) ?? amazonProductUrl(offer, product) ?? offerUrl(offer);
+}
+
+function safeAffiliateUrl(offer: CommerceOffer): string | null {
+  const value = offer.affiliateUrl?.trim();
+  if (!value || !/^https?:\/\//i.test(value)) return null;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.replace(/^www\./, '').toLowerCase();
+    const isAmazon = hostname === 'amazon.com' || hostname.endsWith('.amazon.com') || hostname.includes('amazon.');
+    const isAmazonSearch = isAmazon && (url.pathname === '/s' || url.searchParams.has('k'));
+    return isAmazonSearch ? null : value;
+  } catch {
+    return null;
+  }
+}
+
+function amazonProductUrl(offer: CommerceOffer, product?: CommerceProduct): string | null {
+  const merchantSlug = offer.merchant?.slug?.toLowerCase();
+  const merchant = merchantSlug || merchantName(offer).toLowerCase();
+  if (!merchant.includes('amazon')) return null;
+
+  const asin = [
+    asinFromUrl(offer.productUrl),
+    asinFromUrl(offer.affiliateUrl || undefined),
+    validAsin(offer.merchantSku || undefined),
+    validAsin(product?.asin || undefined),
+    validAsin(product?.sku?.replace(/^amazon-/i, '') || undefined),
+  ].find(Boolean);
+
+  return asin ? `https://www.amazon.com/dp/${asin}` : null;
+}
+
+function asinFromUrl(value?: string): string | null {
+  return value?.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:[/?]|$)/i)?.[1]?.toUpperCase() ?? null;
+}
+
+function validAsin(value?: string): string | null {
+  const candidate = value?.trim().toUpperCase();
+  return candidate && /^[A-Z0-9]{10}$/.test(candidate) ? candidate : null;
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
@@ -81,19 +121,25 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
   const product = await getCommerceProduct(slug).catch(() => null);
   if (!product) notFound();
 
+  const productCategorySlugs = new Set(product.categories?.map((item) => item.slug).filter(Boolean) ?? []);
+  const primaryCategorySlug = product.categories?.[0]?.slug;
+  const sharesProductCategory = (item: CommerceProduct) =>
+    item.categories?.some((category) => productCategorySlugs.has(category.slug)) ?? false;
   const similarProducts = await listSimilarCommerceProducts(product).catch(() => [] as CommerceProduct[]);
   const comparable = comparableProducts(product, similarProducts);
-  let related = comparable.filter((p) => p.slug !== product.slug).slice(0, 10);
-  // Sparse catalog: if no name-similar products, fall back to other products on
-  // this storefront so the section still populates.
-  if (related.length < 5) {
-    const more = await listCommerceProducts({ pageSize: 12 }).then((r) => r.data).catch(() => [] as CommerceProduct[]);
+  let related = comparable.filter((p) => p.slug !== product.slug && sharesProductCategory(p)).slice(0, 10);
+  // Sparse catalog: if no name-similar products share this category, fall back
+  // to other products from the same category only.
+  if (related.length < 5 && primaryCategorySlug) {
+    const more = await listCommerceProducts({ category: primaryCategorySlug, pageSize: 12 })
+      .then((r) => r.data)
+      .catch(() => [] as CommerceProduct[]);
     const seen = new Set([product.slug, ...related.map((p) => p.slug)]);
     related = [...related, ...more.filter((p) => !seen.has(p.slug))].slice(0, 10);
   }
-  const rows = collectOfferRows(product, comparable);
+  const rows = collectOfferRows(product);
   const priceSnapshots = await listCommercePriceSnapshots(
-    [product, ...comparable].map((item) => item.documentId).filter(Boolean) as string[],
+    [product.documentId].filter(Boolean) as string[],
   ).catch(() => [] as CommercePriceSnapshot[]);
   const reviews = await listProductReviews(product.documentId ?? '').catch(() => [] as CommerceReview[]);
   const best = bestOffer(rows);
@@ -128,7 +174,6 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
       ? `Compare current prices for this ${category.toLowerCase()} across trusted merchants.`
       : `Compare current prices for ${product.name} across trusted merchants.`);
   const discount = best ? discountPercent(best.offer) : null;
-  const bestMerchant = best ? merchantName(best.offer) : null;
   const updatedLabel = product.updatedAt ? fmtDate(product.updatedAt) : 'Today';
 
   const productJsonLd = {
@@ -175,6 +220,10 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
                 <span className="text-ink/60">{category}</span>
               </>
             )}
+            <span>/</span>
+            <span className="max-w-[52vw] truncate text-ink/70" aria-current="page">
+              {product.name}
+            </span>
           </nav>
 
           <article className="mt-5 border border-ink/10 bg-white">
@@ -227,7 +276,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
                       productDocumentId={product.documentId}
                       currency={best?.offer.currency ?? 'USD'}
                       currentPrice={bestPrice ?? undefined}
-                      buyHref={best ? buyUrl(best.offer) : undefined}
+                      buyHref={best ? buyUrl(best.offer, best.product) : undefined}
                     />
 
                     <p className="mt-5 text-sm text-ink/55">
@@ -280,19 +329,25 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
       <section className="pb-12">
         <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
           <ProductInfoTabs
+            product={product}
             productId={product.id}
             productName={product.name}
             summary={summary}
             description={product.description}
             specs={product.specs}
-            best={best}
-            bestMerchant={bestMerchant}
-            rows={rows}
-            snapshots={priceSnapshots}
             reviews={reviews}
             productDocumentId={product.documentId ?? ''}
+          />
+        </div>
+      </section>
+
+      <section className="border-t border-ink/10 bg-white py-12" data-testid="price-history">
+        <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
+          <PriceHistorySection
+            productName={product.name}
+            rows={rows}
+            snapshots={priceSnapshots}
             fallbackDate={product.updatedAt}
-            updatedLabel={updatedLabel}
           />
         </div>
       </section>
@@ -337,7 +392,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
             <h2 className="font-display text-2xl font-bold text-ink">Related products</h2>
             <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
               {related.slice(0, 5).map((p) => (
-                <CommerceProductCard key={p.id} product={p} />
+                <CommerceProductCard key={p.id} product={p} showCompareButton={false} />
               ))}
             </div>
           </div>
@@ -348,42 +403,39 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
 }
 
 function ProductInfoTabs({
+  product,
   productId,
   productName,
   summary,
   description,
   specs,
-  best,
-  bestMerchant,
-  rows,
-  snapshots,
   reviews,
   productDocumentId,
-  fallbackDate,
-  updatedLabel,
 }: {
+  product: CommerceProduct;
   productId: number;
   productName: string;
   summary: string;
   description?: string | null;
   specs?: Record<string, unknown> | null;
-  best: CommerceOfferRow | null;
-  bestMerchant: string | null;
-  rows: CommerceOfferRow[];
-  snapshots: CommercePriceSnapshot[];
   reviews: CommerceReview[];
   productDocumentId: string;
-  fallbackDate?: string;
-  updatedLabel: string;
 }) {
-  const tabName = `product-info-tabs-${productId}`;
-  const descriptionId = `description-tab-${productId}`;
-  const specificationsId = `specifications-tab-${productId}`;
-  const historyId = `price-history-tab-${productId}`;
-  const reviewsId = `reviews-tab-${productId}`;
-  const specEntries = productSpecificationEntries(specs);
+  const useGsmarenaSpecsInSpecifications = productHasCategory(product, 'Smart Phones');
+  const hideSpecifications = productHasCategory(product, 'Smart Phones');
   const featureSpecs = productFeatureSpecs(specs);
   const specSource = productSpecificationSource(specs);
+  const additionalInfoEntries = productAdditionalInfoEntries(product);
+  const gsmarenaSpecGroups = gsmarenaSpecificationGroups(specs);
+  const specEntries = hideSpecifications && !useGsmarenaSpecsInSpecifications ? [] : productSpecificationEntries(specs);
+
+  const tabName = `product-info-tabs-${productId}`;
+  const descriptionId = `description-tab-${productId}`;
+  const featuresId = `features-tab-${productId}`;
+  const specsId = `specs-tab-${productId}`;
+  const specificationsId = `specifications-tab-${productId}`;
+  const additionalInfoId = `additional-info-tab-${productId}`;
+  const reviewsId = `reviews-tab-${productId}`;
 
   return (
     <div className="product-info-tabs border border-ink/10 bg-white">
@@ -392,82 +444,83 @@ function ProductInfoTabs({
           __html: `
             .product-info-tabs .product-tab-panel { display: none; }
             .product-info-tabs:has(.tab-input-description:checked) .tab-panel-description { display: block; }
+            .product-info-tabs:has(.tab-input-features:checked) .tab-panel-features { display: block; }
+            .product-info-tabs:has(.tab-input-specs:checked) .tab-panel-specs { display: block; }
             .product-info-tabs:has(.tab-input-specifications:checked) .tab-panel-specifications { display: block; }
-            .product-info-tabs:has(.tab-input-history:checked) .tab-panel-history { display: block; }
+            .product-info-tabs:has(.tab-input-additional-info:checked) .tab-panel-additional-info { display: block; }
             .product-info-tabs:has(.tab-input-reviews:checked) .tab-panel-reviews { display: block; }
             .product-info-tabs:has(.tab-input-description:checked) .tab-label-description,
+            .product-info-tabs:has(.tab-input-features:checked) .tab-label-features,
+            .product-info-tabs:has(.tab-input-specs:checked) .tab-label-specs,
             .product-info-tabs:has(.tab-input-specifications:checked) .tab-label-specifications,
-            .product-info-tabs:has(.tab-input-history:checked) .tab-label-history,
-            .product-info-tabs:has(.tab-input-reviews:checked) .tab-label-reviews { color: #4778e6; }
+            .product-info-tabs:has(.tab-input-additional-info:checked) .tab-label-additional-info,
+            .product-info-tabs:has(.tab-input-reviews:checked) .tab-label-reviews { color: #4778e6; border-bottom-color: #4778e6; }
           `,
         }}
       />
-      <input
-        id={descriptionId}
-        name={tabName}
-        type="radio"
-        className="sr-only tab-input-description"
-      />
-      <input
-        id={specificationsId}
-        name={tabName}
-        type="radio"
-        className="sr-only tab-input-specifications"
-      />
-      <input
-        id={historyId}
-        name={tabName}
-        type="radio"
-        className="sr-only tab-input-history"
-        defaultChecked
-      />
-      <input
-        id={reviewsId}
-        name={tabName}
-        type="radio"
-        className="sr-only tab-input-reviews"
-      />
+      <input id={descriptionId} name={tabName} type="radio" className="sr-only tab-input-description" defaultChecked />
+      <input id={featuresId} name={tabName} type="radio" className="sr-only tab-input-features" />
+      <input id={specsId} name={tabName} type="radio" className="sr-only tab-input-specs" />
+      <input id={specificationsId} name={tabName} type="radio" className="sr-only tab-input-specifications" />
+      <input id={additionalInfoId} name={tabName} type="radio" className="sr-only tab-input-additional-info" />
+      <input id={reviewsId} name={tabName} type="radio" className="sr-only tab-input-reviews" />
 
       <div className="flex overflow-x-auto border-b border-ink/10 text-sm font-bold uppercase tracking-[0.12em] text-ink/60" role="tablist" aria-label="Product information">
-        <label htmlFor={descriptionId} className="tab-label-description cursor-pointer border-r border-ink/10 px-5 py-4 transition hover:text-primary">
+        <label htmlFor={descriptionId} className="tab-label-description cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
           Description
         </label>
-        <label htmlFor={specificationsId} className="tab-label-specifications cursor-pointer border-r border-ink/10 px-5 py-4 transition hover:text-primary">
+        <label htmlFor={featuresId} className="tab-label-features cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
+          Features
+        </label>
+        <label htmlFor={specsId} className="tab-label-specs cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
+          Specs
+        </label>
+        <label htmlFor={specificationsId} className="tab-label-specifications cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
           Specifications
         </label>
-        <label htmlFor={historyId} className="tab-label-history cursor-pointer border-r border-ink/10 px-5 py-4 transition hover:text-primary">
-          Price History
+        <label htmlFor={additionalInfoId} className="tab-label-additional-info cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
+          Additional Info
         </label>
-        <label htmlFor={reviewsId} className="tab-label-reviews cursor-pointer px-5 py-4 transition hover:text-primary">
-          Reviews
+        <label htmlFor={reviewsId} className="tab-label-reviews cursor-pointer border-b-2 border-transparent px-5 py-4 transition hover:text-primary">
+          Reviews{reviews.length ? ` (${reviews.length})` : ''}
         </label>
       </div>
 
       <div className="product-tab-panel tab-panel-description">
-        <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div>
-            <h2 className="font-display text-2xl font-bold text-ink">Product details</h2>
-            {description ? (
-              <div className="mt-4 text-[14px] leading-7 text-ink/70 lg:columns-2 lg:gap-8">
-                <ProductDescription markdown={description} />
-              </div>
-            ) : (
-              <p className="mt-4 text-[14px] leading-7 text-ink/70 lg:columns-2 lg:gap-8">{summary}</p>
-            )}
-          </div>
-          <dl className="grid gap-3 text-sm">
-            <DetailRow label="Best price" value={best ? formatMoney(best.offer.price ?? best.offer.originalPrice, best.offer.currency ?? 'USD') : 'Check price'} />
-            <DetailRow label="Lowest merchant" value={bestMerchant ?? 'Not available'} />
-            <DetailRow label="Tracked offers" value={`${rows.length}`} />
-            <DetailRow label="Last updated" value={updatedLabel} />
-          </dl>
+        <div className="p-6 sm:p-8">
+          {description ? (
+            <div className="text-[1rem] leading-7 text-ink/70">
+              <ProductDescription markdown={description} />
+            </div>
+          ) : (
+            <p className="text-[14px] leading-7 text-ink/70">{summary}</p>
+          )}
         </div>
       </div>
 
-      <div className="product-tab-panel tab-panel-specifications">
+      <div className="product-tab-panel tab-panel-features">
+        <div className="p-6 sm:p-8">
+          <h3 className="font-display text-2xl font-bold text-ink">Features</h3>
+          {featureSpecs.length > 0 ? (
+            <ul className="mt-5 list-disc space-y-3 pl-5 text-sm leading-6 text-ink/70 marker:text-primary">
+              {featureSpecs.map((feature) => (
+                <li key={feature} className="pl-1">
+                  {feature}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-5 border border-ink/10 bg-paper p-6 text-sm leading-6 text-ink/60">
+              Product features have not been imported for this item yet.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="product-tab-panel tab-panel-specs">
         <div className="p-6 sm:p-8">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="font-display text-2xl font-bold text-ink">Specifications</h2>
+            <h3 className="font-display text-2xl font-bold text-ink">Specs</h3>
             {specSource && (
               <p className="text-xs leading-5 text-ink/50">
                 Imported from {specSource}
@@ -475,9 +528,11 @@ function ProductInfoTabs({
             )}
           </div>
 
-          {specEntries.length || featureSpecs.length ? (
-            <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]">
-              <dl className="grid overflow-hidden border border-ink/10 text-sm">
+          {useGsmarenaSpecsInSpecifications ? (
+            <GsmarenaSpecGroups groups={gsmarenaSpecGroups} />
+          ) : specEntries.length ? (
+            <div className="mt-5">
+              <dl className="grid overflow-hidden border-0 text-base">
                 {specEntries.map((entry) => (
                   <div key={entry.label} className="grid gap-2 border-b border-ink/10 px-4 py-3 last:border-b-0 sm:grid-cols-[190px_minmax(0,1fr)]">
                     <dt className="font-bold text-ink/55">{entry.label}</dt>
@@ -485,46 +540,75 @@ function ProductInfoTabs({
                   </div>
                 ))}
               </dl>
-
-              {featureSpecs.length > 0 && (
-                <div className="border border-ink/10 bg-paper p-5">
-                  <h3 className="font-display text-lg font-bold text-ink">Features</h3>
-                  <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/70">
-                    {featureSpecs.map((feature) => (
-                      <li key={feature} className="border-b border-ink/10 pb-3 last:border-b-0 last:pb-0">
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           ) : (
-            <div className="mt-5 border border-ink/10 bg-paper p-6 text-sm leading-6 text-ink/60">
+            <div className="mt-5 border border-ink/10 bg-paper p-6 text-base leading-6 text-ink/60">
+              Product specs have not been imported for this item yet.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="product-tab-panel tab-panel-specifications">
+        <div className="p-6 sm:p-8">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h3 className="font-display text-2xl font-bold text-ink">Specifications</h3>
+            {specSource && (
+              <p className="text-xs leading-5 text-ink/50">
+                Imported from {specSource}
+              </p>
+            )}
+          </div>
+
+          {useGsmarenaSpecsInSpecifications ? (
+            <GsmarenaSpecGroups groups={gsmarenaSpecGroups} />
+          ) : specEntries.length ? (
+            <div className="mt-5">
+              <dl className="grid overflow-hidden border-0 text-base">
+                {specEntries.map((entry) => (
+                  <div key={entry.label} className="grid gap-2 border-b border-ink/10 px-4 py-3 last:border-b-0 sm:grid-cols-[190px_minmax(0,1fr)]">
+                    <dt className="font-bold text-ink/55">{entry.label}</dt>
+                    <dd className="text-ink">{entry.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : (
+            <div className="mt-5 border border-ink/10 bg-paper p-6 text-base leading-6 text-ink/60">
               Product specifications have not been imported for this item yet.
             </div>
           )}
         </div>
       </div>
 
-      <div className="product-tab-panel tab-panel-history">
-        <PriceHistorySection
-          productName={productName}
-          rows={rows}
-          snapshots={snapshots}
-          fallbackDate={fallbackDate}
-          embedded
-        />
+      <div className="product-tab-panel tab-panel-additional-info">
+        <div className="p-6 sm:p-8">
+          <h3 className="font-display text-2xl font-bold text-ink">Additional Info</h3>
+          {additionalInfoEntries.length ? (
+            <dl className="mt-5 grid overflow-hidden border-0 text-base">
+              {additionalInfoEntries.map((entry) => (
+                <div key={entry.label} className="grid gap-2 border-b border-ink/10 px-4 py-3 last:border-b-0 sm:grid-cols-[190px_minmax(0,1fr)]">
+                  <dt className="font-bold text-ink/55">{entry.label}</dt>
+                  <dd className="text-ink">{entry.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <div className="mt-5 border border-ink/10 bg-paper p-6 text-base leading-6 text-ink/60">
+              Additional product information is not available for this item yet.
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="product-tab-panel tab-panel-reviews">
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
           <div>
-            <h2 className="font-display text-2xl font-bold text-ink">
+            <h3 className="font-display text-2xl font-bold text-ink">
               Reviews{reviews.length ? ` (${reviews.length})` : ''}
-            </h2>
+            </h3>
             {reviews.length === 0 ? (
-              <p className="mt-4 text-sm leading-6 text-ink/60">No reviews yet — be the first to review {productName}.</p>
+              <p className="mt-4 text-base leading-6 text-ink/60">No reviews yet — be the first to review {productName}.</p>
             ) : (
               <ul className="mt-5 divide-y divide-ink/10">
                 {reviews.map((r) => (
@@ -537,8 +621,8 @@ function ProductInfoTabs({
                       <span className="font-display text-sm font-bold text-ink">{r.authorName}</span>
                       <span className="text-xs text-ink/40">{fmtDate(r.createdAt)}</span>
                     </div>
-                    {r.title && <p className="mt-2 font-display text-sm font-bold text-ink">{r.title}</p>}
-                    <p className="mt-1.5 text-sm leading-6 text-ink/70">{r.body}</p>
+                    {r.title && <p className="mt-2 font-display text-base font-bold text-ink">{r.title}</p>}
+                    <p className="mt-1.5 text-base leading-6 text-ink/70">{r.body}</p>
                   </li>
                 ))}
               </ul>
@@ -557,6 +641,32 @@ type PriceHistoryEntry = {
   checkedAt: string;
   merchantName?: string;
 };
+
+function GsmarenaSpecGroups({ groups }: { groups: SpecificationGroup[] }) {
+  if (!groups.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-5 grid gap-6">
+      {groups.map((group) => (
+        <section key={group.category} className="border border-ink/10">
+          <h4 className="bg-paper px-4 py-3 font-display text-base font-bold text-ink">
+            {group.category}
+          </h4>
+          <dl className="grid text-base">
+            {group.specifications.map((entry) => (
+              <div key={`${group.category}-${entry.label}`} className="grid gap-2 border-t border-ink/10 px-4 py-3 sm:grid-cols-[190px_minmax(0,1fr)]">
+                <dt className="font-bold text-ink/55">{entry.label}</dt>
+                <dd className="text-ink">{entry.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
+    </div>
+  );
+}
 
 type PriceHistoryPoint = PriceHistoryEntry & {
   dateKey: string;
@@ -641,14 +751,8 @@ function PriceHistorySection({
     <div className="border border-ink/10 bg-white">
       <div className="flex min-h-11 items-center justify-between border-b border-ink/10 bg-white px-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-4 w-4 flex-col justify-center gap-1" aria-hidden="true">
-            <span className="h-0.5 w-4 bg-primary" />
-            <span className="h-0.5 w-4 bg-primary" />
-            <span className="h-0.5 w-4 bg-primary" />
-          </span>
-          <h2 className="font-display text-lg font-bold text-ink">Price History</h2>
+          <h5 className="font-display text-lg font-bold text-ink">Price History</h5>
         </div>
-        <span className="h-2 w-2 rotate-45 border-b-2 border-r-2 border-ink" aria-hidden="true" />
       </div>
       {content}
     </div>
@@ -657,8 +761,8 @@ function PriceHistorySection({
 
 function PriceHistoryChart({ points }: { points: PriceHistoryPoint[] }) {
   const width = 980;
-  const height = 260;
-  const margin = { top: 28, right: 28, bottom: 48, left: 62 };
+  const height = 280;
+  const margin = { top: 30, right: 34, bottom: 50, left: 70 };
   const plotLeft = margin.left;
   const plotRight = width - margin.right;
   const plotTop = margin.top;
@@ -690,49 +794,81 @@ function PriceHistoryChart({ points }: { points: PriceHistoryPoint[] }) {
   const tooltipHeight = 62;
   const tooltipX = clamp(last.x > width - 150 ? last.x - tooltipWidth - 12 : last.x + 12, plotLeft, width - tooltipWidth - 4);
   const tooltipY = clamp(last.y + 12, plotTop + 4, plotBottom - tooltipHeight + 2);
+  const midlineY = plotTop + plotHeight / 2;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-xl bg-[#fbfcff] p-3 shadow-[inset_0_0_0_1px_rgba(13,27,42,0.06)]">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label="Product price history chart"
         className="h-auto min-w-[720px] w-full"
       >
-        <rect width={width} height={height} fill="#ffffff" />
+        <defs>
+          <linearGradient id="priceHistoryArea" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#0072de" stopOpacity="0.24" />
+            <stop offset="62%" stopColor="#9bcffc" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          </linearGradient>
+          <filter id="priceHistoryGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <rect width={width} height={height} rx="18" fill="#fbfcff" />
+        <rect x={plotLeft} y={plotTop} width={plotWidth} height={plotHeight} rx="14" fill="#ffffff" />
 
         {yTicks.map((tick) => {
           const y = plotTop + (1 - tick / chartMax) * plotHeight;
           return (
             <g key={tick}>
-              <line x1={plotLeft} x2={plotRight} y1={y} y2={y} stroke="#e7edf4" strokeWidth="1" />
-              <text x={plotLeft - 12} y={y + 4} textAnchor="end" fontSize="12" fill="#667085">
+              <line x1={plotLeft} x2={plotRight} y1={y} y2={y} stroke="#edf1f7" strokeWidth="1" strokeDasharray={tick === 0 ? undefined : '4 6'} />
+              <text x={plotLeft - 14} y={y + 4} textAnchor="end" fontSize="11" fontWeight="600" fill="#667085">
                 {formatAxisPrice(tick, points[0]?.currency ?? 'USD')}
               </text>
             </g>
           );
         })}
 
-        <path d={areaPath} fill="#8fbedc" opacity="0.95" />
-        <path d={linePath} fill="none" stroke="#0875bb" strokeWidth="3" strokeLinejoin="round" />
+        <line x1={plotLeft} x2={plotRight} y1={midlineY} y2={midlineY} stroke="#d7e8fb" strokeWidth="1.5" strokeDasharray="2 7" />
+        {xTicks.map((tick) => {
+          const index = points.findIndex((point) => point.dateKey === tick.dateKey);
+          const x = points.length === 1 ? plotRight : plotLeft + (plotWidth * Math.max(index, 0)) / Math.max(points.length - 1, 1);
+          return <line key={`${tick.dateKey}-grid`} x1={x} x2={x} y1={plotTop} y2={plotBottom} stroke="#f3f6fa" strokeWidth="1" />;
+        })}
+
+        <path d={areaPath} fill="url(#priceHistoryArea)" />
+        <path d={linePath} fill="none" stroke="#014fd3" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" filter="url(#priceHistoryGlow)" />
         {coords.map((point, index) => (
           <circle
             key={`${point.dateKey}:${index}`}
             cx={point.x}
             cy={point.y}
-            r={index === coords.length - 1 ? 7 : 4}
-            fill="#0875bb"
-            stroke="#ffffff"
-            strokeWidth="1.5"
+            r={index === coords.length - 1 ? 7 : 4.5}
+            fill={index === coords.length - 1 ? '#014fd3' : '#ffffff'}
+            stroke="#014fd3"
+            strokeWidth={index === coords.length - 1 ? 3 : 2}
           />
         ))}
+        <circle
+          cx={last.x}
+          cy={last.y}
+          r="13"
+          fill="none"
+          stroke="#014fd3"
+          strokeOpacity="0.14"
+          strokeWidth="7"
+        />
 
         {xTicks.map((tick) => {
           const index = points.findIndex((point) => point.dateKey === tick.dateKey);
           const x = points.length === 1 ? plotRight : plotLeft + (plotWidth * Math.max(index, 0)) / Math.max(points.length - 1, 1);
           const tickX = clamp(x, plotLeft + 34, plotRight - 34);
           return (
-            <text key={tick.dateKey} x={tickX} y={plotBottom + 28} textAnchor="middle" fontSize="12" fill="#667085">
+            <text key={tick.dateKey} x={tickX} y={plotBottom + 30} textAnchor="middle" fontSize="11" fontWeight="600" fill="#667085">
               {tick.dateKey}
             </text>
           );
@@ -743,16 +879,19 @@ function PriceHistoryChart({ points }: { points: PriceHistoryPoint[] }) {
           y={tooltipY}
           width={tooltipWidth}
           height={tooltipHeight}
-          rx="8"
+          rx="12"
           fill="#ffffff"
-          stroke="#d9dee7"
-          strokeWidth="1"
+          stroke="#d7e8fb"
+          strokeWidth="1.25"
         />
-        <text x={tooltipX + 12} y={tooltipY + 24} fontSize="12" fontWeight="700" fill="#475467">
-          {last.dateKey}
+        <text x={tooltipX + 12} y={tooltipY + 24} fontSize="11" fontWeight="700" fill="#667085">
+          Latest price
         </text>
-        <text x={tooltipX + 12} y={tooltipY + 48} fontSize="12" fill="#0066cc">
-          Price: {formatPlainPrice(last.price, last.currency)}
+        <text x={tooltipX + 12} y={tooltipY + 48} fontSize="15" fontWeight="800" fill="#014fd3">
+          {formatPlainPrice(last.price, last.currency)}
+        </text>
+        <text x={plotRight} y={plotTop - 10} textAnchor="end" fontSize="11" fontWeight="700" fill="#667085">
+          {last.dateKey}
         </text>
       </svg>
     </div>
@@ -768,7 +907,7 @@ function CompactOfferRow({ row, className = '' }: { row: CommerceOfferRow; class
   return (
     <div className={`product-offer-row grid min-h-[48px] grid-cols-[minmax(0,1fr)_108px_82px] border-b border-ink/10 text-sm last:border-b-0 ${className}`}>
       <a
-        href={buyUrl(offer)}
+        href={buyUrl(offer, product)}
         target="_blank"
         rel="nofollow sponsored noopener noreferrer"
         className="flex min-w-0 items-center gap-2 px-3 py-2 text-ink transition hover:text-primary"
@@ -788,7 +927,7 @@ function CompactOfferRow({ row, className = '' }: { row: CommerceOfferRow; class
         {unavailable && <p className="mt-0.5 text-[10px] font-bold text-red-600">out of stock</p>}
       </div>
       <a
-        href={buyUrl(offer)}
+        href={buyUrl(offer, product)}
         target="_blank"
         rel="nofollow sponsored noopener noreferrer"
         aria-label={`See offer for ${offer.title || product.name} at ${merchantName(offer)}`}
@@ -809,12 +948,12 @@ function SavedPriceComparison({ rows }: { rows: CommerceOfferRow[] }) {
 
   return (
     <div className="mt-7 overflow-hidden border border-ink/10 bg-white">
-      <div className="hidden grid-cols-[minmax(0,1.35fr)_120px_130px_130px_120px] border-b border-ink/10 bg-paper px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-ink/45 lg:grid">
+      <div className="hidden grid-cols-[minmax(0,1fr)_112px_118px_118px_120px] gap-x-4 border-b border-ink/10 bg-paper px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink/50 lg:grid">
         <span>Store</span>
-        <span>Price</span>
-        <span>Condition</span>
-        <span>Updated</span>
-        <span className="text-right">Action</span>
+        <span className="text-center">Price</span>
+        <span className="text-center">Condition</span>
+        <span className="text-center">Updated</span>
+        <span className="text-center">Action</span>
       </div>
       {sorted.map((row, index) => (
         <SavedPriceRow key={`${row.offer.documentId ?? row.offer.id}-${row.product.slug}`} row={row} best={index === 0} />
@@ -831,7 +970,7 @@ function SavedPriceRow({ row, best }: { row: CommerceOfferRow; best: boolean }) 
   const unavailable = offer.availability === 'out_of_stock';
 
   return (
-    <article className="grid gap-4 border-b border-ink/10 px-4 py-4 last:border-b-0 lg:grid-cols-[minmax(0,1.35fr)_120px_130px_130px_120px] lg:items-center">
+    <article className="grid gap-y-3 border-b border-ink/10 px-5 py-4 last:border-b-0 lg:grid-cols-[minmax(0,1fr)_112px_118px_118px_120px] lg:items-center lg:gap-x-4">
       <div className="flex min-w-0 items-start gap-3">
         {logo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -851,26 +990,26 @@ function SavedPriceRow({ row, best }: { row: CommerceOfferRow; best: boolean }) 
         </div>
       </div>
 
-      <div>
-        <p className="font-display text-lg font-bold text-ink">{price !== null ? formatMoney(price, offer.currency ?? 'USD') : 'Check price'}</p>
+      <div className="text-left lg:text-center">
+        <p className="font-display text-[15px] font-semibold leading-none text-ink">{price !== null ? formatMoney(price, offer.currency ?? 'USD') : 'Check price'}</p>
         {offer.originalPrice && numericValue(offer.originalPrice) !== price && (
           <p className="text-xs text-ink/40 line-through">{formatMoney(offer.originalPrice, offer.currency ?? 'USD')}</p>
         )}
       </div>
 
-      <div className="text-sm capitalize text-ink/65">
+      <div className="text-left text-[13px] capitalize text-ink/65 lg:text-center">
         {formatOfferCondition(offer.condition)}
       </div>
 
-      <div className="text-sm text-ink/55">
+      <div className="text-left text-[13px] text-ink/55 lg:text-center">
         {updated ? timeAgo(updated) : 'Recently'}
       </div>
 
       <a
-        href={buyUrl(offer)}
+        href={buyUrl(offer, product)}
         target="_blank"
         rel="nofollow sponsored noopener noreferrer"
-        className="inline-flex justify-center bg-primary px-4 py-2.5 text-xs font-bold uppercase tracking-[0.14em] text-white transition hover:bg-primary-emphasis"
+        className="inline-flex min-w-[108px] justify-center justify-self-start bg-primary px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-primary-emphasis lg:justify-self-center"
       >
         View offer
       </a>
@@ -883,19 +1022,23 @@ function formatOfferCondition(value?: CommerceOffer['condition']) {
   return value.replace(/_/g, ' ');
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 border-b border-ink/10 pb-3 last:border-b-0">
-      <dt className="text-ink/45">{label}</dt>
-      <dd className="font-medium text-ink">{value}</dd>
-    </div>
-  );
-}
-
 type SpecificationEntry = {
   label: string;
   value: string;
 };
+
+type SpecificationGroup = {
+  category: string;
+  specifications: SpecificationEntry[];
+};
+
+const PRODUCT_IDENTIFIER_FIELDS = [
+  { label: 'MPN', productKey: 'mpn', specKeys: ['MPN', 'mpn'] },
+  { label: 'UPC', productKey: null, specKeys: ['UPC', 'upc'] },
+  { label: 'GTIN', productKey: 'gtin', specKeys: ['GTIN', 'gtin'] },
+  { label: 'ePID', productKey: null, specKeys: ['ePID', 'EPID', 'epid'] },
+  { label: 'ASIN', productKey: 'asin', specKeys: ['ASIN', 'asin', 'amazonAsin'] },
+] as const;
 
 const HIDDEN_SPEC_KEYS = new Set([
   'technicalSpecs',
@@ -918,7 +1061,34 @@ const HIDDEN_SPEC_KEYS = new Set([
   'specSourceMerchantSlug',
   'specSourceUrl',
   'specImportedAt',
+  'gsmarena',
+  'gsmarenaImportedAt',
+  'additionalInfo',
 ]);
+
+function productAdditionalInfoEntries(product: CommerceProduct): SpecificationEntry[] {
+  const categories = product.categories?.map((category) => category.name).filter(Boolean).join(', ');
+  const rating = formatSpecValue(product.rating);
+  const ratingCount = product.ratingCount ? `${product.ratingCount}` : undefined;
+  const entries: Array<{ label: string; value?: string }> = [
+    { label: 'Brand', value: product.brandRef?.name || product.brand || undefined },
+    { label: 'Category', value: categories || product.category || undefined },
+    { label: 'SKU', value: product.sku || undefined },
+    { label: 'MPN', value: product.mpn || undefined },
+    { label: 'GTIN', value: product.gtin || undefined },
+    { label: 'ASIN', value: product.asin || undefined },
+    { label: 'Rating', value: rating && ratingCount ? `${rating} (${ratingCount} reviews)` : rating },
+    { label: 'Status', value: product.status || undefined },
+    { label: 'Last Updated', value: product.updatedAt ? fmtDate(product.updatedAt) : undefined },
+  ];
+
+  return entries.filter((entry): entry is SpecificationEntry => Boolean(entry.value));
+}
+
+function productHasCategory(product: CommerceProduct, categoryName: string) {
+  const expected = categoryName.trim().toLowerCase();
+  return product.categories?.some((category) => category.name.trim().toLowerCase() === expected || category.slug.trim().toLowerCase() === expected.replace(/\s+/g, '-')) ?? false;
+}
 
 function productSpecificationEntries(specs?: Record<string, unknown> | null): SpecificationEntry[] {
   if (!isPlainRecord(specs)) return [];
@@ -927,13 +1097,44 @@ function productSpecificationEntries(specs?: Record<string, unknown> | null): Sp
   const source = Object.keys(technicalSpecs).length ? technicalSpecs : specs;
 
   return Object.entries(source)
-    .filter(([key]) => !HIDDEN_SPEC_KEYS.has(key) && !/^features?$/i.test(key))
+    .filter(([key]) => !HIDDEN_SPEC_KEYS.has(key) && !isProductIdentifierKey(key) && !/^features?$/i.test(key))
     .map(([key, value]) => ({
       label: key,
       value: formatSpecValue(value),
     }))
     .filter((entry): entry is SpecificationEntry => Boolean(entry.value))
     .slice(0, 80);
+}
+
+function gsmarenaSpecificationGroups(specs?: Record<string, unknown> | null): SpecificationGroup[] {
+  if (!isPlainRecord(specs) || !isPlainRecord(specs.gsmarena)) return [];
+
+  const rawGroups = Array.isArray(specs.gsmarena.specifications) ? specs.gsmarena.specifications : [];
+  return rawGroups
+    .map((group): SpecificationGroup | null => {
+      if (!isPlainRecord(group)) return null;
+      const category = formatSpecValue(group.category);
+      const rawEntries = Array.isArray(group.specifications) ? group.specifications : [];
+      const specifications = rawEntries
+        .map((entry): SpecificationEntry | null => {
+          if (!isPlainRecord(entry)) return null;
+          const label = formatSpecValue(entry.name || entry.label);
+          const value = formatSpecValue(entry.value);
+          return label && value ? { label, value } : null;
+        })
+        .filter((entry): entry is SpecificationEntry => Boolean(entry));
+
+      return category && specifications.length ? { category, specifications } : null;
+    })
+    .filter((group): group is SpecificationGroup => Boolean(group));
+}
+
+function isProductIdentifierKey(key: string) {
+  return PRODUCT_IDENTIFIER_FIELDS.some((field) => field.specKeys.some((specKey) => normalizeSpecKey(specKey) === normalizeSpecKey(key)));
+}
+
+function normalizeSpecKey(key: string) {
+  return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
 }
 
 function productFeatureSpecs(specs?: Record<string, unknown> | null): string[] {
@@ -1211,7 +1412,7 @@ function ProductDescription({ markdown }: { markdown: string }) {
       para.push(lines[i]);
       i += 1;
     }
-    blocks.push(<p key={key++} className="mt-3 first:mt-0">{inline(para.join(' '))}</p>);
+    blocks.push(<p key={key++} className="mt-3 text-[1rem] first:mt-0">{inline(para.join(' '))}</p>);
   }
   return <div>{blocks}</div>;
 }

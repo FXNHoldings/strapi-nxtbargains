@@ -26,7 +26,7 @@ export default function DealProductCard({
   row: CommerceOfferRow;
   metric: DealCardMetric;
   note?: string;
-  titleAs?: 'h2' | 'h3' | 'h4';
+  titleAs?: 'h2' | 'h3' | 'h4' | 'h5';
 }) {
   const image = productImageUrl(product);
   const offer = row.offer;
