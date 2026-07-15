@@ -13,11 +13,15 @@ export default function CommerceProductCard({
   showStoreLogo = false,
   showCompareButton = true,
   titleClassName = '',
+  uniformImage = false,
+  catalogLayout = false,
 }: {
   product: CommerceProduct;
   showStoreLogo?: boolean;
   showCompareButton?: boolean;
   titleClassName?: string;
+  uniformImage?: boolean;
+  catalogLayout?: boolean;
 }) {
   const rows = collectOfferRows(product);
   const best = bestOffer(rows);
@@ -26,25 +30,41 @@ export default function CommerceProductCard({
   const bestMerchant = best?.offer.merchant ?? null;
   const storeLogo = bestMerchant?.logo ? mediaUrl(bestMerchant.logo) : null;
   const storeName = best ? merchantName(best.offer) : null;
+  const useUniformImage = uniformImage || catalogLayout;
+  const imageBoxClass = useUniformImage
+    ? `trending-image-box commerce-product-image-box grid aspect-square place-items-center overflow-hidden bg-white ${catalogLayout ? 'mb-3.5 rounded-[11px]' : ''}`
+    : 'commerce-product-image-box grid overflow-hidden bg-white';
+  const imageClass = useUniformImage
+    ? 'trending-image commerce-product-image h-full w-full object-contain mix-blend-multiply transition duration-500 group-hover:scale-[1.04]'
+    : 'commerce-product-image h-52 w-full object-contain p-5 mix-blend-multiply transition duration-500 group-hover:scale-[1.03]';
 
   return (
-    <article className="group flex h-full flex-col border border-ink/10 bg-white" data-testid={`commerce-product-${product.slug}`}>
-      <Link href={`/products/${product.slug}`} className="commerce-product-image-box grid overflow-hidden bg-white">
+    <article
+      className={`group flex h-full flex-col bg-white ${
+        catalogLayout
+          ? 'rounded-2xl border border-ink/10 p-[18px] transition hover:-translate-y-1 hover:shadow-[0_26px_46px_-26px_rgba(13,27,42,0.42)]'
+          : 'border border-ink/10'
+      }`}
+      data-testid={`commerce-product-${product.slug}`}
+    >
+      <Link href={`/products/${product.slug}`} className={imageBoxClass}>
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={image}
             alt={product.primaryImage?.alternativeText || product.name}
-            className="commerce-product-image h-52 w-full object-contain p-5 mix-blend-multiply transition duration-500 group-hover:scale-[1.03]"
+            className={imageClass}
           />
         ) : (
-          <span className="flex h-52 w-full items-center justify-center bg-muted px-6 text-center font-display text-2xl font-bold text-ink/25">
+          <span className={`flex items-center justify-center bg-muted px-6 text-center font-display font-bold text-ink/25 ${
+            useUniformImage ? 'h-full w-full text-lg' : 'h-52 w-full text-2xl'
+          }`}>
             {product.brandRef?.name ?? product.brand ?? 'NXT'}
           </span>
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col p-5">
+      <div className={`flex flex-1 flex-col ${catalogLayout ? '' : 'p-5'}`}>
         {showStoreLogo ? (
           <div className="flex h-5 items-center">
             {storeLogo ? (
@@ -60,18 +80,38 @@ export default function CommerceProductCard({
           </p>
         )}
         <Link href={`/products/${product.slug}`}>
-          <h3 className={`product-card-title mt-3 line-clamp-2 font-display leading-tight text-ink transition group-hover:text-primary ${titleClassName}`}>
+          <h3 className={`product-card-title line-clamp-2 font-display leading-tight text-ink transition group-hover:text-primary ${
+            catalogLayout ? 'mb-3 mt-1.5 h-[2.6em] overflow-hidden leading-[1.3]' : 'mt-3'
+          } ${titleClassName}`}>
             {product.name}
           </h3>
         </Link>
 
         {/* From price on one line (no border) + store/marketplace name */}
-        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
-          <p className="font-display text-base font-bold text-ink">
-            <span className="mr-1 text-[11px] font-bold uppercase tracking-[0.12em] text-ink/40">From</span>
-            {best ? formatMoney(best.offer.price ?? best.offer.originalPrice, best.offer.currency ?? 'USD') : 'Check price'}
-          </p>
-          {storeLogo ? (
+        <div className={`mt-auto flex items-end justify-between gap-3 ${catalogLayout ? 'border-t border-ink/10 pt-3' : 'pt-5'}`}>
+          <div className={catalogLayout ? 'text-[0.74rem] text-ink/55' : undefined}>
+            {catalogLayout ? (
+              <>
+                From
+                <b className="block font-display text-[1.1rem] font-extrabold text-ink">
+                  {best ? formatMoney(best.offer.price ?? best.offer.originalPrice, best.offer.currency ?? 'USD') : 'Check price'}
+                </b>
+              </>
+            ) : (
+              <p className="font-display text-base font-bold text-ink">
+                <span className="mr-1 text-[11px] font-bold uppercase tracking-[0.12em] text-ink/40">From</span>
+                {best ? formatMoney(best.offer.price ?? best.offer.originalPrice, best.offer.currency ?? 'USD') : 'Check price'}
+              </p>
+            )}
+          </div>
+          {catalogLayout ? (
+            <Link
+              href={`/products/${product.slug}`}
+              className="rounded-[9px] bg-primary px-3.5 py-2 font-display text-[0.8rem] font-semibold text-white transition hover:bg-primary-emphasis"
+            >
+              Compare
+            </Link>
+          ) : storeLogo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={storeLogo} alt={storeName ?? 'Store'} referrerPolicy="no-referrer" className="h-5 max-w-[84px] shrink-0 object-contain object-right" />
           ) : (
@@ -81,7 +121,7 @@ export default function CommerceProductCard({
           )}
         </div>
 
-        {showCompareButton && (
+        {showCompareButton && !catalogLayout && (
           <div className="mt-4 flex justify-start">
             <Link
               href={`/products/${product.slug}`}

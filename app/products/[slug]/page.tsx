@@ -432,7 +432,6 @@ function ProductInfoTabs({
   const tabName = `product-info-tabs-${productId}`;
   const descriptionId = `description-tab-${productId}`;
   const featuresId = `features-tab-${productId}`;
-  const specsId = `specs-tab-${productId}`;
   const specificationsId = `specifications-tab-${productId}`;
   const additionalInfoId = `additional-info-tab-${productId}`;
   const reviewsId = `reviews-tab-${productId}`;
@@ -445,13 +444,11 @@ function ProductInfoTabs({
             .product-info-tabs .product-tab-panel { display: none; }
             .product-info-tabs:has(.tab-input-description:checked) .tab-panel-description { display: block; }
             .product-info-tabs:has(.tab-input-features:checked) .tab-panel-features { display: block; }
-            .product-info-tabs:has(.tab-input-specs:checked) .tab-panel-specs { display: block; }
             .product-info-tabs:has(.tab-input-specifications:checked) .tab-panel-specifications { display: block; }
             .product-info-tabs:has(.tab-input-additional-info:checked) .tab-panel-additional-info { display: block; }
             .product-info-tabs:has(.tab-input-reviews:checked) .tab-panel-reviews { display: block; }
             .product-info-tabs:has(.tab-input-description:checked) .tab-label-description,
             .product-info-tabs:has(.tab-input-features:checked) .tab-label-features,
-            .product-info-tabs:has(.tab-input-specs:checked) .tab-label-specs,
             .product-info-tabs:has(.tab-input-specifications:checked) .tab-label-specifications,
             .product-info-tabs:has(.tab-input-additional-info:checked) .tab-label-additional-info,
             .product-info-tabs:has(.tab-input-reviews:checked) .tab-label-reviews { color: #4778e6; border-bottom-color: #4778e6; }
@@ -460,7 +457,6 @@ function ProductInfoTabs({
       />
       <input id={descriptionId} name={tabName} type="radio" className="sr-only tab-input-description" defaultChecked />
       <input id={featuresId} name={tabName} type="radio" className="sr-only tab-input-features" />
-      <input id={specsId} name={tabName} type="radio" className="sr-only tab-input-specs" />
       <input id={specificationsId} name={tabName} type="radio" className="sr-only tab-input-specifications" />
       <input id={additionalInfoId} name={tabName} type="radio" className="sr-only tab-input-additional-info" />
       <input id={reviewsId} name={tabName} type="radio" className="sr-only tab-input-reviews" />
@@ -471,9 +467,6 @@ function ProductInfoTabs({
         </label>
         <label htmlFor={featuresId} className="tab-label-features cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
           Features
-        </label>
-        <label htmlFor={specsId} className="tab-label-specs cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
-          Specs
         </label>
         <label htmlFor={specificationsId} className="tab-label-specifications cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
           Specifications
@@ -512,38 +505,6 @@ function ProductInfoTabs({
           ) : (
             <div className="mt-5 border border-ink/10 bg-paper p-6 text-sm leading-6 text-ink/60">
               Product features have not been imported for this item yet.
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="product-tab-panel tab-panel-specs">
-        <div className="p-6 sm:p-8">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <h3 className="font-display text-2xl font-bold text-ink">Specs</h3>
-            {specSource && (
-              <p className="text-xs leading-5 text-ink/50">
-                Imported from {specSource}
-              </p>
-            )}
-          </div>
-
-          {useGsmarenaSpecsInSpecifications ? (
-            <GsmarenaSpecGroups groups={gsmarenaSpecGroups} />
-          ) : specEntries.length ? (
-            <div className="mt-5">
-              <dl className="grid overflow-hidden border-0 text-base">
-                {specEntries.map((entry) => (
-                  <div key={entry.label} className="grid gap-2 border-b border-ink/10 px-4 py-3 last:border-b-0 sm:grid-cols-[190px_minmax(0,1fr)]">
-                    <dt className="font-bold text-ink/55">{entry.label}</dt>
-                    <dd className="text-ink">{entry.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ) : (
-            <div className="mt-5 border border-ink/10 bg-paper p-6 text-base leading-6 text-ink/60">
-              Product specs have not been imported for this item yet.
             </div>
           )}
         </div>

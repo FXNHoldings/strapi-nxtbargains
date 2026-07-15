@@ -7,7 +7,7 @@ import StickyHeaderShadow from './StickyHeaderShadow';
 const NAV = [
   {
     href: '/products',
-    label: 'Products',
+    label: 'All Products',
     children: [
       { href: '/category/smart-phones', label: 'Smart Phones' },
       { href: '/category/smartwatches', label: 'Smartwatches' },

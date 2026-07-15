@@ -339,6 +339,43 @@ article[data-testid^="commerce-product-"] .commerce-product-image {
   padding: 0 !important;
 }
 
+/* Products page header — fixed 1366px content width. */
+[data-testid="products-page-header"] .products-page-header-inner {
+  width: 100%;
+  max-width: 1366px;
+  margin-inline: auto;
+}
+
+[data-testid="products-page-header"] .products-hero-panel {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-testid="products-page"] .products-filters-panel,
+[data-testid="products-page"] .products-catalog-grid article,
+[data-testid="products-page"] [data-testid="products-active-filters"] a,
+[data-testid="products-category-strip"] a {
+  border-color: rgba(3, 3, 3, 0.1) !important;
+}
+
+/* Products page: same uniform square image treatment as home trending. */
+[data-testid="products-page"] .trending-image-box,
+[data-testid="products-page"] .commerce-product-image-box {
+  aspect-ratio: 1 / 1;
+  inline-size: 100%;
+  place-items: center;
+}
+
+[data-testid="products-page"] .trending-image,
+[data-testid="products-page"] .commerce-product-image {
+  block-size: 82% !important;
+  inline-size: 82% !important;
+  max-block-size: 82%;
+  max-inline-size: 82%;
+  object-fit: contain !important;
+  object-position: center;
+  padding: 0 !important;
+}
+
 /* Buying guides editorial block (originfacts Car Rentals layout). */
 [data-testid="home-guides"] .guide-feature-image-box,
 [data-testid="home-guides"] .guide-compact-thumb {
