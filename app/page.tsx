@@ -5,10 +5,12 @@ import {
   listCommerceProductsForDeals,
   listPosts,
   listStores,
+  mediaUrl,
   type CommerceProduct,
   type NxtPost,
   type Store,
 } from '@/lib/strapi';
+import { firstImageUrl, postPath } from '@/lib/format';
 import {
   bestOffer,
   collectOfferRows,
@@ -18,10 +20,10 @@ import {
   offerPrice,
   productImageUrl,
 } from '@/lib/commerce';
-import PostCard from '@/components/PostCard';
 import Hero from '@/components/Hero';
 import MarketplaceBestSellers from '@/components/MarketplaceBestSellers';
-import { listHomepageCoupons, type Coupon } from '@/lib/coupon-data';
+import { listCouponPageData } from '@/lib/coupon-data';
+import HomepageCouponsSection from '@/components/HomepageCouponsSection';
 import { listBestSellerGroups } from '@/lib/best-sellers';
 
 export const revalidate = 60;
@@ -85,12 +87,12 @@ function toDeal(product: CommerceProduct): Deal | null {
 
 export default async function HomePage() {
   // Pull live data; never let a Strapi hiccup break the page.
-  const [productsRes, dealProducts, posts, stores, coupons] = await Promise.all([
+  const [productsRes, dealProducts, posts, stores, couponPageData] = await Promise.all([
     listCommerceProducts({ pageSize: 48 }).catch(() => null),
     listCommerceProductsForDeals(120).catch(() => [] as CommerceProduct[]),
-    listPosts({ pageSize: 6 }).then((r) => r.data).catch(() => [] as NxtPost[]),
+    listPosts({ pageSize: 7 }).then((r) => r.data).catch(() => [] as NxtPost[]),
     listStores().catch(() => [] as Store[]),
-    listHomepageCoupons(4).catch(() => [] as Coupon[]),
+    listCouponPageData().catch(() => ({ coupons: [], retailers: [], brandGroups: [] })),
   ]);
 
   const products = productsRes?.data ?? [];
@@ -189,57 +191,27 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ---------- BUYING GUIDES & REVIEWS ---------- */}
+      {/* ---------- BUYING GUIDES & REVIEWS (originfacts Car Rentals layout) ---------- */}
       {posts.length > 0 && (
-        <section className="bg-[#f8fafc] py-14 sm:py-[72px]" data-testid="home-guides">
-          <div className="mx-auto max-w-[1366px] px-6">
-            <SectionHead eyebrow="Read first" title="Buying guides & reviews" intro="Honest comparisons and reviews to help you buy with confidence." cta={{ href: '/deals', label: 'All guides' }} />
-            <div className="mt-9 grid items-start gap-5 lg:grid-cols-[1.18fr_0.82fr]">
-              <div className="h-fit rounded-lg border border-ink/10 bg-white p-4 pb-[26px] shadow-[0_18px_44px_-34px_rgba(13,27,42,0.45)] sm:p-5 sm:pb-[30px]">
-                <PostCard post={posts[0]} variant="feature" thumbBg="bg-white" />
-              </div>
-              <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-1">
-                {posts.slice(1, 3).map((post) => (
-                  <div key={post.id} className="guide-side-card h-fit rounded-lg border border-ink/10 bg-white p-3 shadow-[0_18px_44px_-36px_rgba(13,27,42,0.38)]">
-                    <PostCard post={post} variant="tile" thumbBg="bg-white" />
-                  </div>
-                ))}
-              </div>
-            </div>
-            {posts.length > 3 && (
-              <div className="mt-5 grid gap-4 md:grid-cols-3">
-                {posts.slice(3, 6).map((post) => (
-                  <div key={post.id} className="rounded-lg border border-ink/10 bg-white p-4">
-                    <PostCard post={post} variant="compact" thumbBg="bg-white" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ---------- TODAY'S BEST COUPON CODES ---------- */}
-      {coupons.length > 0 && (
-        <section className="pb-14 sm:pb-[72px]" data-testid="home-coupons">
+        <section className="py-14 sm:py-[72px]" data-testid="home-guides">
           <div className="mx-auto max-w-[1366px] px-6">
             <SectionHead
-              eyebrow="Coupon codes"
-              title="Today's best coupon codes"
-              intro="Quick savings from the same coupon feed used on the coupons page."
-              introClassName="text-[14px]"
-              cta={{ href: '/coupons', label: 'All coupons' }}
+              eyebrow="Read first"
+              title="Buying guides & reviews"
+              intro="Honest comparisons, reviews, and roundups to help you buy with confidence."
+              cta={{ href: '/deals', label: 'All guides' }}
             />
-            <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {coupons.map((coupon) => (
-                <CouponCodeCard key={`${coupon.store}-${coupon.code ?? coupon.title}`} coupon={coupon} />
-              ))}
-            </div>
+            <GuidesEditorialSection posts={posts} />
           </div>
         </section>
       )}
 
-      <FinalCta />
+      <HomepageCouponsSection
+        coupons={couponPageData.coupons}
+        retailers={couponPageData.retailers}
+        brandGroups={couponPageData.brandGroups}
+      />
+
     </div>
   );
 }
@@ -305,6 +277,148 @@ function DealCard({ deal }: { deal: Deal }) {
   );
 }
 
+/* -------------------------------------------------------- Guide / editorial */
+function guideImage(post: NxtPost) {
+  return mediaUrl(post.coverImage ?? null) ?? firstImageUrl(post.content);
+}
+
+function guideCategories(post: NxtPost) {
+  return (post.categories ?? []).filter((cat) => cat.slug !== 'uncategorized').slice(0, 3);
+}
+
+function GuideCategoryLabel({ post, compact = false }: { post: NxtPost; compact?: boolean }) {
+  const categories = guideCategories(post);
+  const chips = categories.length > 0 ? categories.map((cat) => cat.name) : ['Buying guide'];
+  const visible = compact ? chips.slice(0, 1) : chips;
+
+  return (
+    <div className={`guide-category-label flex flex-wrap items-center gap-x-3 gap-y-1 ${compact ? 'guide-category-label--compact' : ''}`}>
+      {visible.map((name) => (
+        <span
+          key={name}
+          className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-primary"
+        >
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
+          {name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function GuideArticleMeta({ post, compact = false }: { post: NxtPost; compact?: boolean }) {
+  const readMins = post.readingTimeMinutes ?? 5;
+
+  return (
+    <div className={`guide-article-meta flex flex-wrap items-center gap-2 text-sm text-ink/75 ${compact ? 'mt-3' : 'mt-4'}`}>
+      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent font-display text-sm font-bold text-ink">
+        N
+      </span>
+      <span>NXT.Bargains Editorial</span>
+      <span className="text-ink/35">|</span>
+      <span>{readMins} min read</span>
+    </div>
+  );
+}
+
+function GuidesEditorialSection({ posts }: { posts: NxtPost[] }) {
+  const [feature, ...rest] = posts;
+  const list = rest.slice(0, 6);
+  if (!feature) return null;
+
+  return (
+    <div
+      className="guide-editorial-grid mt-10 grid gap-[15px] lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] lg:items-stretch"
+      data-testid="home-guides-editorial"
+    >
+      <GuideFeatureArticle post={feature} />
+      {list.length > 0 ? (
+        <div
+          className="guide-list-panel flex h-full min-h-0 flex-col divide-y divide-ink/12 border-y border-ink/12"
+          data-testid="home-guides-list"
+        >
+          {list.map((post) => (
+            <GuideCompactRow key={post.id} post={post} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function GuideFeatureArticle({ post }: { post: NxtPost }) {
+  const img = guideImage(post);
+  const href = postPath(post);
+
+  return (
+    <article className="group" data-testid={`guide-feature-${post.slug}`}>
+      <Link href={href} className="guide-feature-image-box block overflow-hidden rounded bg-white">
+        {img ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={img}
+            alt={post.coverImage?.alternativeText || post.title}
+            className="guide-feature-image aspect-[16/11] w-full mix-blend-multiply transition duration-500 group-hover:scale-[1.02]"
+          />
+        ) : (
+          <div className="grid aspect-[16/11] w-full place-items-center bg-[#f7f7f7] font-display text-2xl font-bold text-ink/20">
+            NXT
+          </div>
+        )}
+      </Link>
+      <div className="mt-5">
+        <GuideCategoryLabel post={post} />
+        <Link href={href}>
+          <h3 className="guide-feature-title mt-3 font-display text-xl font-bold leading-tight text-ink transition group-hover:text-primary sm:text-2xl">
+            {post.title}
+          </h3>
+        </Link>
+        {post.excerpt ? (
+          <p className="mt-3 line-clamp-2 max-w-2xl text-sm leading-6 text-ink/75 sm:text-base">
+            {post.excerpt}
+          </p>
+        ) : null}
+        <GuideArticleMeta post={post} />
+      </div>
+    </article>
+  );
+}
+
+function GuideCompactRow({ post }: { post: NxtPost }) {
+  const img = guideImage(post);
+  const href = postPath(post);
+
+  return (
+    <article className="guide-compact-row group min-h-0 flex-1 py-3 lg:py-0" data-testid={`guide-compact-${post.slug}`}>
+      <Link
+        href={href}
+        className="guide-compact-row-link grid h-full min-h-0 w-full grid-cols-[56px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[64px_minmax(0,1fr)] lg:grid-cols-[minmax(0,4.25rem)_minmax(0,1fr)] lg:gap-3.5"
+      >
+        <div className="guide-compact-thumb h-full max-h-[56px] overflow-hidden rounded bg-white sm:max-h-[64px] lg:max-h-none lg:h-[72%] lg:w-auto lg:aspect-square">
+          {img ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={img}
+              alt={post.coverImage?.alternativeText || post.title}
+              className="guide-compact-image h-full w-full max-h-full max-w-full object-contain mix-blend-multiply transition duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center bg-[#f7f7f7] font-display text-xs font-bold text-ink/20">
+              NXT
+            </div>
+          )}
+        </div>
+        <div className="flex min-h-0 min-w-0 flex-col justify-center gap-1">
+          <GuideCategoryLabel post={post} compact />
+          <h3 className="guide-compact-title line-clamp-2 font-display font-bold leading-snug text-ink transition group-hover:text-primary">
+            {post.title}
+          </h3>
+        </div>
+      </Link>
+    </article>
+  );
+}
+
 /* ------------------------------------------------------------- Trending card */
 function TrendingCard({ product }: { product: CommerceProduct }) {
   const best = bestOffer(collectOfferRows(product));
@@ -335,42 +449,6 @@ function TrendingCard({ product }: { product: CommerceProduct }) {
   );
 }
 
-/* ------------------------------------------------------------- Coupon card */
-function CouponCodeCard({ coupon }: { coupon: Coupon }) {
-  const title = expandedCouponTitle(coupon.title);
-
-  return (
-    <article className="group flex h-full flex-col rounded-lg border border-ink/10 bg-white transition hover:-translate-y-1 hover:border-primary hover:shadow-[0_22px_42px_-30px_rgba(13,27,42,0.48)]">
-      <div className="flex items-center justify-between gap-3 border-b border-ink/10 p-4">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded bg-primary text-white">
-          <span className="font-display text-sm font-extrabold">{coupon.store.slice(0, 2).toUpperCase()}</span>
-        </div>
-        <span className="rounded bg-[#e9f7ef] px-2.5 py-1 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#16794a]">
-          {coupon.type}
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col p-4">
-        <p className="text-[0.72rem] font-bold uppercase tracking-[0.12em] text-primary">{coupon.store}</p>
-        <h4 className="mt-2 font-display text-[1.25rem] font-extrabold leading-tight text-ink">{coupon.discount}</h4>
-        <p className="mt-3 line-clamp-1 text-[0.88rem] leading-6 text-ink/65">{title}</p>
-        <div className="mt-4 rounded border border-dashed border-ink/20 bg-paper px-3 py-2">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink/45">Code</p>
-          <p className="mt-1 font-display text-[0.98rem] font-bold text-ink">{coupon.code ?? 'No code needed'}</p>
-        </div>
-        <Link href={coupon.href} className="mt-4 inline-flex w-full items-center justify-center rounded bg-primary px-4 py-2.5 text-[0.78rem] font-bold uppercase tracking-[0.1em] text-white transition hover:bg-primary-emphasis">
-          View offer
-        </Link>
-      </div>
-    </article>
-  );
-}
-
-function expandedCouponTitle(title: string) {
-  return title.trim().toLowerCase() === "father's day sale"
-    ? "Father's Day Sale savings on gifts, gadgets, tools, style, home essentials, and more."
-    : title;
-}
-
 /* --------------------------------------------------------------- How it works */
 function HowItWorks() {
   const steps = [
@@ -396,38 +474,6 @@ function HowItWorks() {
               </div>
             ))}
           </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ Final CTA */
-function FinalCta() {
-  const feats: [string, string][] = [
-    ['✓', 'Compare every marketplace'],
-    ['📈', 'Price history & drops'],
-    ['⚡', 'Free, no signup'],
-  ];
-  return (
-    <section className="py-16 text-center sm:py-[84px]" data-testid="home-cta">
-      <div className="mx-auto max-w-[1366px] px-6">
-        <h2 className="mx-auto max-w-[18ch] font-display text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.08] tracking-[-0.02em] text-ink">
-          Start with one product. Stop overpaying on all of them.
-        </h2>
-        <p className="mx-auto mt-[18px] max-w-[46ch] text-[1.05rem] text-ink/55">
-          Compare prices across marketplaces and read the guides before you buy.
-        </p>
-        <div className="mt-[30px] flex flex-wrap justify-center gap-3.5">
-          <Link href="/products" className="rounded-xl bg-primary px-[30px] py-[15px] font-display text-[0.98rem] font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary-emphasis">Browse products</Link>
-          <Link href="/deals" className="rounded-xl border border-ink/10 bg-white px-[30px] py-[15px] font-display text-[0.98rem] font-bold text-ink transition hover:-translate-y-0.5 hover:border-ink">Read buying guides</Link>
-        </div>
-        <div className="mt-[46px] flex flex-wrap justify-center gap-9">
-          {feats.map(([ic, label]) => (
-            <div key={label} className="flex items-center gap-2.5 text-[0.9rem] text-ink/55">
-              <span className="grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-primary/10 text-primary">{ic}</span>{label}
-            </div>
-          ))}
         </div>
       </div>
     </section>

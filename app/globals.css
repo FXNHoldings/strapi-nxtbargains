@@ -339,33 +339,165 @@ article[data-testid^="commerce-product-"] .commerce-product-image {
   padding: 0 !important;
 }
 
-/* Buying guides: crop oversized white product canvases so editorial cards feel
-   tighter while keeping the change local to the homepage guide block. */
-[data-testid="home-guides"] article img {
+/* Buying guides editorial block (originfacts Car Rentals layout). */
+[data-testid="home-guides"] .guide-feature-image-box,
+[data-testid="home-guides"] .guide-compact-thumb {
+  display: grid;
+  place-items: center;
+}
+
+[data-testid="home-guides"] .guide-feature-image,
+[data-testid="home-guides"] .guide-compact-image {
   object-fit: contain !important;
   object-position: center;
 }
 
-[data-testid="home-guides"] article[data-testid^="feature-"] img,
-[data-testid="home-guides"] article[data-testid^="tile-"] img {
-  aspect-ratio: 16 / 8 !important;
+[data-testid="home-guides"] .guide-feature-image {
+  block-size: 88% !important;
+  inline-size: 88% !important;
+  max-block-size: 88%;
+  max-inline-size: 88%;
 }
 
-[data-testid="home-guides"] .guide-side-card article[data-testid^="tile-"] img {
-  aspect-ratio: 16 / 5.4 !important;
+[data-testid="home-guides"] .guide-compact-image {
+  block-size: 84% !important;
+  inline-size: 84% !important;
+  max-block-size: 84%;
+  max-inline-size: 84%;
 }
 
-[data-testid="home-guides"] .guide-side-card article[data-testid^="tile-"] > div {
-  margin-top: 0.65rem;
+@media (min-width: 1024px) {
+  [data-testid="home-guides-editorial"] {
+    align-items: stretch;
+  }
+
+  [data-testid="home-guides-list"] {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  [data-testid="home-guides-list"] .guide-compact-row {
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    min-height: 0;
+    padding-block: 0;
+  }
+
+  [data-testid="home-guides-list"] .guide-compact-row-link {
+    align-items: center;
+    height: 100%;
+    min-height: 0;
+  }
+
+  [data-testid="home-guides-list"] .guide-compact-thumb {
+    flex-shrink: 0;
+    height: 72%;
+    max-height: 100%;
+    width: auto;
+    aspect-ratio: 1 / 1;
+  }
+
+  [data-testid="home-guides"] .guide-compact-image {
+    block-size: 88% !important;
+    inline-size: 88% !important;
+    max-block-size: 88%;
+    max-inline-size: 88%;
+  }
 }
 
-[data-testid="home-guides"] .guide-side-card article[data-testid^="tile-"] h3 {
-  font-size: 1rem !important;
+[data-testid="home-guides"] .guide-category-label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em;
+}
+
+[data-testid="home-guides"] .guide-category-label--compact {
+  font-size: 9px !important;
+  letter-spacing: 0.04em;
+}
+
+[data-testid="home-guides"] .guide-category-label--compact span.inline-flex {
+  font-size: 9px !important;
+  letter-spacing: 0.04em;
+}
+
+[data-testid="home-guides"] .guide-category-label--compact span.inline-flex .inline-block {
+  height: 0.3125rem;
+  width: 0.3125rem;
+}
+
+[data-testid="home-guides"] .guide-article-meta {
+  font-size: 0.875rem !important;
+}
+
+[data-testid="home-guides"] .max-w-\[52ch\] > h2 {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+}
+
+@media (min-width: 640px) {
+  [data-testid="home-guides"] .max-w-\[52ch\] > h2 {
+    font-size: 1.875rem !important;
+    line-height: 2.25rem !important;
+  }
+}
+
+[data-testid="home-guides"] .guide-feature-title {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
   line-height: 1.25 !important;
 }
 
-[data-testid="home-guides"] .guide-side-card article[data-testid^="tile-"] p.line-clamp-2 {
-  -webkit-line-clamp: 1;
+@media (min-width: 640px) {
+  [data-testid="home-guides"] .guide-feature-title {
+    font-size: 1.5rem !important;
+    line-height: 1.35 !important;
+  }
+}
+
+[data-testid="home-guides"] .guide-compact-title {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+}
+
+@media (min-width: 640px) {
+  [data-testid="home-guides"] .guide-compact-title {
+    font-size: 0.8125rem !important;
+    line-height: 1.35 !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  [data-testid="home-guides"] .guide-compact-title {
+    font-size: 0.75rem !important;
+    line-height: 1.28 !important;
+  }
+}
+
+/* Right column list panel — restore borders hidden by global borderless rule. */
+[data-testid="home-guides"] .guide-list-panel {
+  border-top: 1px solid rgba(3, 3, 3, 0.12) !important;
+  border-bottom: 1px solid rgba(3, 3, 3, 0.12) !important;
+}
+
+[data-testid="home-guides"] .guide-list-panel > :not([hidden]) ~ :not([hidden]) {
+  border-top: 1px solid rgba(3, 3, 3, 0.12) !important;
+}
+
+/* Coupon section — restore borders hidden by global borderless rule. */
+[data-testid="home-coupons"] .coupon-tile,
+[data-testid="home-coupons"] .coupon-category-shortcut,
+[data-testid="home-coupons"] .coupon-sidebar {
+  border-color: rgba(3, 3, 3, 0.1) !important;
+}
+
+[data-testid="home-coupons"] .coupon-tile .border-dashed {
+  border-color: rgba(3, 3, 3, 0.2) !important;
 }
 
 /* Best Sellers tabs: compact pill style matching retail category filters. */
