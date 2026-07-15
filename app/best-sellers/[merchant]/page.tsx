@@ -71,11 +71,7 @@ export default async function MarketplaceBestSellersPage({ params }: { params: P
                 <Link
                   key={option.key}
                   href={`/best-sellers/${option.key}`}
-                  className={`best-seller-tab shrink-0 border bg-white px-4 py-2 font-display text-[0.78rem] font-bold leading-none transition hover:border-[#0046be] hover:text-[#0046be] sm:px-[18px] sm:text-[0.82rem] ${
-                    option.key === marketplace.key
-                      ? 'border-[#0046be] text-[#0046be]'
-                      : 'border-[#c5cbd5] text-ink hover:bg-white'
-                  }`}
+                  className={`best-seller-tab shrink-0 ${option.key === marketplace.key ? 'best-seller-tab-active' : ''}`}
                 >
                   {option.label}
                 </Link>
@@ -89,11 +85,7 @@ export default async function MarketplaceBestSellersPage({ params }: { params: P
                 <Link
                   key={`category-tab-${group.key}`}
                   href={`#best-sellers-${marketplace.key}-${group.key}`}
-                  className={`best-seller-tab shrink-0 border bg-white px-4 py-2 font-display text-[0.78rem] font-bold leading-none transition hover:border-[#0046be] hover:text-[#0046be] sm:px-[18px] sm:text-[0.82rem] ${
-                    index === 0
-                      ? 'border-[#0046be] text-[#0046be]'
-                      : 'border-[#c5cbd5] text-ink hover:bg-white'
-                  }`}
+                  className={`best-seller-tab shrink-0 ${index === 0 ? 'best-seller-tab-active' : ''}`}
                 >
                   {group.label}
                 </Link>

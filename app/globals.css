@@ -370,9 +370,36 @@ article[data-testid^="commerce-product-"] .commerce-product-image {
 
 /* Best Sellers tabs: compact pill style matching retail category filters. */
 .best-seller-tab {
-  border-radius: 9999px !important;
-  min-height: 34px;
+  align-items: center;
+  background-color: #fff !important;
+  border: 1px solid #c5cbd5 !important;
+  border-radius: 18px !important;
+  color: #111 !important;
+  display: inline-flex;
+  font-family: var(--font-body), Arial, system-ui, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  justify-content: center;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  min-height: 35px;
+  padding: 0 18px;
+  text-transform: none !important;
+  transition: border-color .18s ease, color .18s ease, box-shadow .18s ease;
   white-space: nowrap;
+}
+
+.best-seller-tab:hover,
+.best-seller-tab:focus-visible {
+  border-color: #0046be !important;
+  color: #0046be !important;
+}
+
+.best-seller-tab-active {
+  border: 2px solid #0046be !important;
+  color: #0046be !important;
+  padding-left: 17px;
+  padding-right: 17px;
 }
 
 /* Force a uniform 4px radius on every button and button-styled link

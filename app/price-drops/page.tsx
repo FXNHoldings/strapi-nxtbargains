@@ -1,11 +1,20 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import DealProductCard from '@/components/DealProductCard';
 import { SITE } from '@/lib/site';
-import { bestOffer, collectOfferRows, numericValue, offerPrice, type CommerceOfferRow } from '@/lib/commerce';
+import {
+  bestOffer,
+  collectOfferRows,
+  formatMoney,
+  merchantName,
+  numericValue,
+  offerPrice,
+  productImageUrl,
+  type CommerceOfferRow,
+} from '@/lib/commerce';
 import {
   listCommercePriceSnapshots,
   listCommerceProductsForDeals,
+  mediaUrl,
   type CommercePriceSnapshot,
   type CommerceProduct,
 } from '@/lib/strapi';
@@ -89,14 +98,14 @@ export default async function PriceDropsPage() {
       />
 
       {dropCount > 0 ? (
-        <section className="border-b border-ink/10 bg-[#f7fafc] py-10 sm:py-12" data-testid="featured-drops">
+        <section className="bg-[#f7f7f7] py-10 sm:py-12" data-testid="featured-drops">
           <div className="mx-auto max-w-[1366px] px-6">
             <SectionHead
-              eyebrow="Top picks"
+              eyebrow="Largest movement"
               title="Biggest tracked drops"
-              subtitle="Products with the largest price movement from their recent peak."
+              subtitle="The sharpest recent moves from the saved price-history feed."
             />
-            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="mt-6 grid gap-4 lg:grid-cols-4">
               {featuredDrops.map((drop) => (
                 <PriceDropCard key={`featured-${drop.product.id}-${drop.row.offer.id}-${drop.checkedAt}`} drop={drop} featured />
               ))}
@@ -107,18 +116,25 @@ export default async function PriceDropsPage() {
 
       <section className="bg-white py-10 sm:py-14" id="all-drops">
         <div className="mx-auto max-w-[1366px] px-6">
-          <SectionHead
-            eyebrow="All drops"
-            title="Every price drop on this page"
-            subtitle={
-              dropCount > 0
-                ? `${dropCount} products ranked by drop percentage. Each compares the latest tracked price against the highest earlier snapshot.`
-                : 'No tracked price drops are available right now.'
-            }
-          />
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <SectionHead
+              eyebrow="Live tracker"
+              title="All tracked drops"
+              subtitle={
+                dropCount > 0
+                  ? `${dropCount} products ranked by drop percentage. Each compares the latest tracked price against the highest earlier snapshot.`
+                  : 'No tracked price drops are available right now.'
+              }
+            />
+            {dropCount > 0 ? (
+              <Link href="/products" className="inline-flex border border-ink/15 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-ink transition hover:border-primary hover:text-primary">
+                Compare all products
+              </Link>
+            ) : null}
+          </div>
 
           {dropCount > 0 ? (
-            <div className="mt-8 grid gap-4 lg:grid-cols-2">
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {drops.map((drop) => (
                 <PriceDropCard key={`${drop.product.id}-${drop.row.offer.id}-${drop.checkedAt}`} drop={drop} />
               ))}
@@ -132,7 +148,7 @@ export default async function PriceDropsPage() {
         </div>
       </section>
 
-      <section className="border-t border-ink/10 bg-[#f7fafc] py-10">
+      <section className="bg-[#f7f7f7] py-10">
         <div className="mx-auto max-w-[1366px] px-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <BrowseCard href="/best-deals" title="Best deals" subtitle="Highest current merchant discounts" />
@@ -166,68 +182,60 @@ function Hero({
   totalSavings: string | null;
 }) {
   return (
-    <section className="relative overflow-hidden border-b border-ink/10 bg-[#0c1222] text-white">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-80"
-        style={{
-          background:
-            'radial-gradient(at 80% 20%, rgba(21,86,238,0.22) 0%, transparent 50%), radial-gradient(at 15% 85%, rgba(239,68,68,0.1) 0%, transparent 50%)',
-        }}
-      />
-      <div className="relative mx-auto max-w-[1366px] px-6 py-10 sm:py-14">
-        <div className="flex flex-col gap-[3.5rem]">
-          <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/45">
-            <Link href="/" className="transition hover:text-white">Home</Link>
-            <span aria-hidden>/</span>
-            <span className="text-[#67b7ff]">Price drops</span>
-          </nav>
+    <section className="bg-[#f7f7f7]">
+      <div className="mx-auto max-w-[1366px] px-6 py-10 sm:py-14">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end">
+          <div>
+            <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-ink/45">
+              <Link href="/" className="transition hover:text-primary">Home</Link>
+              <span aria-hidden>/</span>
+              <span className="text-primary">Price drops</span>
+            </nav>
 
-          <div className="max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#67b7ff]">Tracked price history</p>
-            <h1 className="mt-3 font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-[2.75rem]">
-              Products that recently moved lower
+            <p className="mt-10 text-xs font-bold uppercase tracking-[0.16em] text-primary">Tracked price history</p>
+            <h1 className="mt-3 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-ink sm:text-4xl lg:text-[2.75rem]">
+              Price drops worth checking before they move again
             </h1>
-            <p className="mt-4 text-base leading-7 text-white/70 sm:text-lg">
-              Ranked from saved price history snapshots — each drop compares the latest
-              tracked price against the highest earlier price for the same product.
+            <p className="mt-4 max-w-2xl text-base leading-7 text-ink/65 sm:text-lg">
+              Ranked from saved price-history snapshots, with current offers pulled into
+              each product card so you can compare the drop and the live marketplace price.
             </p>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a href="#all-drops" className="inline-flex bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis">
+                View all drops
+              </a>
+              <Link href="/best-deals" className="inline-flex border border-ink/15 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-ink transition hover:border-primary hover:text-primary">
+                Best deals
+              </Link>
+              <Link href="/coupons" className="inline-flex border border-ink/15 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-ink transition hover:border-primary hover:text-primary">
+                Coupons
+              </Link>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-6 sm:gap-10">
+          <div className="grid gap-3 bg-white p-4 shadow-[0_18px_50px_-38px_rgba(3,3,3,0.45)] sm:grid-cols-2">
             <Stat label="Price drops" value={String(dropCount)} />
-            <Stat label="Biggest drop" value={dropCount > 0 ? `${topDrop}%` : '—'} />
-            <Stat label="Avg. drop" value={dropCount > 0 ? `${avgDrop}%` : '—'} />
+            <Stat label="Biggest drop" value={dropCount > 0 ? `${topDrop}%` : '-'} />
+            <Stat label="Avg. drop" value={dropCount > 0 ? `${avgDrop}%` : '-'} />
             <Stat label="Products tracked" value={String(productsTracked)} />
             <Stat label="Snapshots" value={String(snapshotsCount)} compact />
             <Stat label="Last updated" value={updatedLabel} compact />
-            {totalSavings ? <Stat label="Total savings" value={totalSavings} compact /> : null}
+            {totalSavings ? <Stat label="Total savings" value={totalSavings} compact wide /> : null}
           </div>
-        </div>
-
-        <div className="mt-[3.5rem] flex flex-wrap gap-3">
-          <a href="#all-drops" className="inline-flex bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis">
-            View all drops
-          </a>
-          <Link href="/best-deals" className="inline-flex border border-white/20 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white/80 transition hover:border-white/40 hover:text-white">
-            Best deals
-          </Link>
-          <Link href="/products" className="inline-flex border border-white/20 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white/75 transition hover:border-white/40 hover:text-white">
-            All products
-          </Link>
         </div>
       </div>
     </section>
   );
 }
 
-function Stat({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
+function Stat({ label, value, compact = false, wide = false }: { label: string; value: string; compact?: boolean; wide?: boolean }) {
   return (
-    <div className={compact ? 'max-w-[180px]' : undefined}>
-      <p className={`font-display font-bold text-white ${compact ? 'text-base leading-snug' : 'text-3xl'}`}>
+    <div className={`border border-ink/10 bg-[#f7f7f7] p-4 ${wide ? 'sm:col-span-2' : ''}`}>
+      <p className={`font-display font-bold text-ink ${compact ? 'text-lg leading-snug' : 'text-2xl'}`}>
         {value}
       </p>
-      <p className="mt-1 text-sm text-white/55">{label}</p>
+      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-ink/45">{label}</p>
     </div>
   );
 }
@@ -246,42 +254,97 @@ function BrowseCard({ href, title, subtitle }: { href: string; title: string; su
   return (
     <Link
       href={href}
-      className="group flex flex-col border border-ink/10 bg-white p-5 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_14px_28px_-20px_rgba(13,27,42,0.35)]"
+      className="group flex flex-col bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_-20px_rgba(13,27,42,0.35)]"
     >
       <h4 className="font-display text-base font-bold text-ink group-hover:text-primary">{title}</h4>
       <p className="mt-1 text-sm text-ink/55">{subtitle}</p>
-      <span className="mt-3 text-xs font-bold uppercase tracking-[0.1em] text-primary">Browse →</span>
+      <span className="mt-3 text-xs font-bold uppercase tracking-[0.1em] text-primary">Browse</span>
     </Link>
   );
 }
 
 function PriceDropCard({ drop, featured = false }: { drop: PriceDrop; featured?: boolean }) {
-  const currency = drop.row.offer.currency ?? 'USD';
-  const note = `Was ${formatPlainMoney(drop.previousPrice, currency)} · saved ${formatPlainMoney(drop.dropAmount, currency)}`;
+  const product = drop.product;
+  const offer = drop.row.offer;
+  const currency = offer.currency ?? 'USD';
+  const image = productImageUrl(product);
+  const logo = mediaUrl(offer.merchant?.logo ?? null);
+  const merchant = merchantName(offer);
+  const current = formatMoney(drop.currentPrice, currency);
+  const previous = formatPlainMoney(drop.previousPrice, currency);
+  const savings = formatPlainMoney(drop.dropAmount, currency);
+  const checked = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(drop.checkedAt));
+  const progress = Math.min(100, Math.max(6, drop.dropPercent));
 
   return (
-    <div className={featured ? 'relative' : undefined}>
-      {featured ? (
-        <span className="absolute right-3 top-3 z-10 rounded bg-primary/10 px-2 py-1 text-[0.6rem] font-bold uppercase tracking-wider text-primary">
-          Top pick
-        </span>
-      ) : null}
-      <div
-        className={
-          featured
-            ? 'transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_-20px_rgba(13,27,42,0.35)] [&>article]:border-primary/25 [&>article]:shadow-[0_12px_24px_-18px_rgba(21,86,238,0.2)]'
-            : 'transition hover:-translate-y-0.5 [&>article]:hover:border-primary/30 [&>article]:hover:shadow-[0_14px_28px_-20px_rgba(13,27,42,0.35)]'
-        }
-      >
-        <DealProductCard
-          product={drop.product}
-          row={drop.row}
-          metric={{ label: 'Dropped', value: `${drop.dropPercent}%`, tone: 'red' }}
-          note={note}
-          titleAs="h4"
-        />
+    <article className={`group flex h-full flex-col bg-white transition hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-24px_rgba(3,3,3,0.4)] ${featured ? 'ring-1 ring-primary/20' : ''}`}>
+      <Link href={`/products/${product.slug}`} className="grid aspect-[4/3] place-items-center bg-white p-5">
+        {image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={image}
+            alt={product.primaryImage?.alternativeText || product.name}
+            className="h-full max-h-44 w-full object-contain mix-blend-multiply transition duration-500 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <span className="flex h-36 w-full items-center justify-center bg-muted px-4 text-center font-display text-xl font-bold text-ink/25">
+            {product.brandRef?.name ?? product.brand ?? 'NXT'}
+          </span>
+        )}
+      </Link>
+
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-start justify-between gap-3">
+          <span className="inline-flex bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">
+            -{drop.dropPercent}%
+          </span>
+          {featured ? <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Featured</span> : null}
+        </div>
+
+        <Link href={`/products/${product.slug}`} className="mt-4 block">
+          <h4 className="line-clamp-2 font-display text-[1rem] font-bold leading-tight text-ink transition group-hover:text-primary">
+            {product.name}
+          </h4>
+        </Link>
+
+        <div className="mt-4">
+          <div className="h-1.5 bg-[#eef0f3]">
+            <div className="h-full bg-primary" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/40">Now</p>
+              <p className="font-display text-xl font-bold text-ink">{current}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink/40">Was</p>
+              <p className="font-display text-base font-bold text-ink/35 line-through">{previous}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-auto flex items-end justify-between gap-4 pt-5">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-ink/50">Saved {savings} · checked {checked}</p>
+            <div className="mt-2 flex h-5 items-center">
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo} alt={`${merchant} logo`} referrerPolicy="no-referrer" className="h-5 max-w-[96px] object-contain object-left" />
+              ) : (
+                <p className="line-clamp-1 text-xs font-bold uppercase tracking-[0.12em] text-primary">{merchant}</p>
+              )}
+            </div>
+          </div>
+
+          <Link
+            href={`/products/${product.slug}`}
+            className="shrink-0 border border-primary px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-primary transition hover:bg-primary hover:text-white"
+          >
+            Compare
+          </Link>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -339,7 +402,7 @@ function formatPlainMoney(value: number, currency: string) {
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="mt-8 border border-dashed border-ink/15 bg-[#f7fafc] p-10 text-center">
+    <div className="mt-8 border border-dashed border-ink/15 bg-[#f7f7f7] p-10 text-center">
       <h2 className="font-display text-lg font-bold text-ink">{title}</h2>
       <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-ink/60">{body}</p>
     </div>
@@ -349,21 +412,21 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 function ValueStrip({ dropCount }: { dropCount: number }) {
   const items = [
     {
-      ic: '📉',
+      ic: '01',
       t: 'Tracked price history',
       s: dropCount > 0
         ? 'Drops are calculated from saved snapshots comparing latest vs. peak tracked prices.'
-        : 'Snapshots are collected as products are checked — drops appear once prices fall.',
+        : 'Snapshots are collected as products are checked; drops appear once prices fall.',
     },
-    { ic: '✓', t: 'Compare before you buy', s: 'Each card links to the full product page with live merchant offers.' },
-    { ic: '→', t: 'More ways to save', s: 'Browse best deals, coupons, and buying guides on NXT.Bargains.' },
+    { ic: '02', t: 'Compare before you buy', s: 'Each card links to the full product page with live merchant offers.' },
+    { ic: '03', t: 'More ways to save', s: 'Browse best deals, coupons, and buying guides on NXT.Bargains.' },
   ];
   return (
-    <div className="border-t border-ink/10 bg-muted">
+    <div className="bg-white">
       <div className="mx-auto grid max-w-[1366px] gap-6 px-6 py-10 sm:grid-cols-3">
         {items.map((v) => (
           <div key={v.t} className="flex items-start gap-3.5">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-lg">{v.ic}</span>
+            <span className="grid h-11 w-11 shrink-0 place-items-center bg-primary/10 font-display text-xs font-bold text-primary">{v.ic}</span>
             <div>
               <div className="font-display text-[0.96rem] font-semibold text-ink">{v.t}</div>
               <div className="mt-0.5 text-[0.85rem] leading-6 text-ink/55">{v.s}</div>
