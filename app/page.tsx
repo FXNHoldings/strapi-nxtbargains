@@ -25,6 +25,7 @@ import MarketplaceBestSellers from '@/components/MarketplaceBestSellers';
 import { listCouponPageData } from '@/lib/coupon-data';
 import HomepageCouponsSection from '@/components/HomepageCouponsSection';
 import { listBestSellerGroups } from '@/lib/best-sellers';
+import { productHref } from '@/lib/product-url';
 
 export const revalidate = 60;
 
@@ -76,7 +77,7 @@ function toDeal(product: CommerceProduct): Deal | null {
     product,
     name: product.name,
     image: productImageUrl(product),
-    href: `/products/${product.slug}`,
+    href: productHref(product),
     merchant: merchantName(chosen),
     price: chosenPrice,
     original: chosenOriginal,
@@ -425,9 +426,10 @@ function TrendingCard({ product }: { product: CommerceProduct }) {
   const price = best ? offerPrice(best.offer) : null;
   const image = productImageUrl(product);
   const category = product.categories?.[0]?.name ?? product.category ?? 'Product';
+  const href = productHref(product);
   return (
     <div className="group flex flex-col rounded-2xl border border-ink/10 bg-white p-[18px] transition hover:-translate-y-1.5 hover:shadow-[0_26px_46px_-26px_rgba(13,27,42,0.42)]">
-      <Link href={`/products/${product.slug}`} className="trending-image-box mb-3.5 grid aspect-square place-items-center overflow-hidden rounded-[11px] bg-white">
+      <Link href={href} className="trending-image-box mb-3.5 grid aspect-square place-items-center overflow-hidden rounded-[11px] bg-white">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt={product.name} className="trending-image h-full w-full object-contain p-3 mix-blend-multiply transition duration-500 group-hover:scale-[1.04]" />
@@ -436,14 +438,14 @@ function TrendingCard({ product }: { product: CommerceProduct }) {
         )}
       </Link>
       <span className="text-[0.7rem] font-bold uppercase tracking-[0.05em] text-primary">{category}</span>
-      <Link href={`/products/${product.slug}`}>
+      <Link href={href}>
         <h3 className="product-card-title mb-3 mt-1.5 line-clamp-2 h-[2.6em] overflow-hidden leading-[1.3] text-ink transition group-hover:text-primary">{product.name}</h3>
       </Link>
       <div className="mt-auto flex items-center justify-between border-t border-ink/10 pt-3">
         <div className="text-[0.74rem] text-ink/55">
           From<b className="block font-display text-[1.1rem] font-extrabold text-ink">{price !== null ? formatMoney(price, best?.offer.currency ?? 'USD') : 'Check price'}</b>
         </div>
-        <Link href={`/products/${product.slug}`} className="rounded-[9px] bg-primary px-3.5 py-2 font-display text-[0.8rem] font-semibold text-white transition group-hover:bg-primary-emphasis">Compare</Link>
+        <Link href={href} className="rounded-[9px] bg-primary px-3.5 py-2 font-display text-[0.8rem] font-semibold text-white transition group-hover:bg-primary-emphasis">Compare</Link>
       </div>
     </div>
   );

@@ -11,6 +11,8 @@ export const SITE = {
   },
 };
 
+export const INFORMATIVE_ARTICLES_SLUG = 'nxt-bargains-informative-articles' as const;
+
 export type SectionKey =
   | 'product-comparisons'
   | 'product-reviews'

@@ -18,6 +18,7 @@ import {
   type CommercePriceSnapshot,
   type CommerceProduct,
 } from '@/lib/strapi';
+import { productHref } from '@/lib/product-url';
 
 export const revalidate = 120;
 
@@ -275,10 +276,11 @@ function PriceDropCard({ drop, featured = false }: { drop: PriceDrop; featured?:
   const savings = formatPlainMoney(drop.dropAmount, currency);
   const checked = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(drop.checkedAt));
   const progress = Math.min(100, Math.max(6, drop.dropPercent));
+  const href = productHref(product);
 
   return (
     <article className={`group flex h-full flex-col bg-white transition hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-24px_rgba(3,3,3,0.4)] ${featured ? 'ring-1 ring-primary/20' : ''}`}>
-      <Link href={`/products/${product.slug}`} className="grid aspect-[4/3] place-items-center bg-white p-5">
+      <Link href={href} className="grid aspect-[4/3] place-items-center bg-white p-5">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -301,7 +303,7 @@ function PriceDropCard({ drop, featured = false }: { drop: PriceDrop; featured?:
           {featured ? <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Featured</span> : null}
         </div>
 
-        <Link href={`/products/${product.slug}`} className="mt-4 block">
+        <Link href={href} className="mt-4 block">
           <h4 className="line-clamp-2 font-display text-[1rem] font-bold leading-tight text-ink transition group-hover:text-primary">
             {product.name}
           </h4>
@@ -337,7 +339,7 @@ function PriceDropCard({ drop, featured = false }: { drop: PriceDrop; featured?:
           </div>
 
           <Link
-            href={`/products/${product.slug}`}
+            href={href}
             className="shrink-0 border border-primary px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-primary transition hover:bg-primary hover:text-white"
           >
             Compare

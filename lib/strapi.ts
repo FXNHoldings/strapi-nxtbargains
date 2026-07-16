@@ -517,18 +517,26 @@ export async function listProductReviews(productDocumentId: string): Promise<Com
   }
 }
 
-export async function listAllCommerceProductSlugs(): Promise<{ slug: string; updatedAt: string }[]> {
-  const all: { slug: string; updatedAt: string }[] = [];
+export async function listAllCommerceProductSlugs(): Promise<
+  { slug: string; updatedAt: string; categories?: CommerceProduct['categories']; category?: string | null }[]
+> {
+  const all: { slug: string; updatedAt: string; categories?: CommerceProduct['categories']; category?: string | null }[] = [];
   let page = 1;
   while (true) {
     const res = await strapiFetch<ListResponse<CommerceProduct>>('commerce-products', {
-      fields: ['slug', 'updatedAt'],
+      fields: ['slug', 'updatedAt', 'category'],
+      populate: { categories: { fields: ['slug', 'name'] } },
       filters: { status: { $eq: 'active' } },
       sort: ['updatedAt:desc'],
       pagination: { page, pageSize: 100 },
     });
     for (const product of res.data) {
-      all.push({ slug: product.slug, updatedAt: product.updatedAt });
+      all.push({
+        slug: product.slug,
+        updatedAt: product.updatedAt,
+        categories: product.categories,
+        category: product.category,
+      });
     }
     const pageCount = res.meta?.pagination?.pageCount ?? 1;
     if (page >= pageCount) break;

@@ -8,6 +8,7 @@ import {
   type CommerceOfferRow,
 } from '@/lib/commerce';
 import { mediaUrl, type CommerceProduct } from '@/lib/strapi';
+import { productHref } from '@/lib/product-url';
 
 export type DealCardMetric = {
   label: string;
@@ -40,10 +41,11 @@ export default function DealProductCard({
         ? 'bg-blue-50 text-blue-700'
         : 'bg-emerald-50 text-emerald-700';
   const TitleTag = titleAs;
+  const href = productHref(product);
 
   return (
     <article className="group grid h-full border border-ink/10 bg-white sm:grid-cols-[180px_minmax(0,1fr)]">
-      <Link href={`/products/${product.slug}`} className="flex min-h-[190px] items-center justify-center border-b border-ink/10 bg-white p-5 sm:border-b-0 sm:border-r">
+      <Link href={href} className="flex min-h-[190px] items-center justify-center border-b border-ink/10 bg-white p-5 sm:border-b-0 sm:border-r">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -71,7 +73,7 @@ export default function DealProductCard({
           )}
         </div>
 
-        <Link href={`/products/${product.slug}`} className="mt-4 block">
+        <Link href={href} className="mt-4 block">
           <TitleTag className="line-clamp-2 font-display text-xl font-bold leading-tight text-ink transition group-hover:text-primary">
             {product.name}
           </TitleTag>
@@ -92,7 +94,7 @@ export default function DealProductCard({
             <p className="mt-1 text-xs text-ink/45">{note ?? merchantName(offer)}</p>
           </div>
           <Link
-            href={`/products/${product.slug}`}
+            href={href}
             className="inline-flex bg-primary px-4 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis"
           >
             Compare prices

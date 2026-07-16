@@ -80,7 +80,10 @@ function CategoryList({
           All categories
         </Link>
         {categories.map((category) => {
-          const href = `${action}${productPageQuery({ ...filters, category: category.value })}`;
+          const href =
+            action === '/products'
+              ? `/category/${category.value}`
+              : `${action}${productPageQuery({ ...filters, category: category.value })}`;
           const active = filters.category === category.value;
 
           return (

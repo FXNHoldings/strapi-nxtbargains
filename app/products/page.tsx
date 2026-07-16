@@ -97,7 +97,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               {featuredCategories.map((category) => (
                 <Link
                   key={category.value}
-                  href={`/products${productPageQuery({ ...filters, category: category.value })}`}
+                  href={`/category/${category.value}`}
                   className={`inline-flex border px-3 py-1.5 text-xs font-bold transition ${
                     filters.category === category.value
                       ? 'border-primary bg-primary/5 text-primary'

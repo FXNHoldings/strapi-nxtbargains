@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { listAllCommerceProductSlugs, listAllPostSlugs, listCategories } from '@/lib/strapi';
+import { productCanonicalPath } from '@/lib/product-url';
 import { SECTIONS, SITE } from '@/lib/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -41,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const productEntries: MetadataRoute.Sitemap = products.map((product) => ({
-    url: `${SITE.url}/products/${product.slug}`,
+    url: `${SITE.url}${productCanonicalPath(product)}`,
     lastModified: product.updatedAt ? new Date(product.updatedAt) : now,
     changeFrequency: 'daily',
     priority: 0.8,

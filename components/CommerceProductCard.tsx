@@ -7,6 +7,7 @@ import {
   productImageUrl,
 } from '@/lib/commerce';
 import { mediaUrl, type CommerceProduct } from '@/lib/strapi';
+import { productHref } from '@/lib/product-url';
 
 export default function CommerceProductCard({
   product,
@@ -27,6 +28,7 @@ export default function CommerceProductCard({
   const best = bestOffer(rows);
   const image = productImageUrl(product);
   const category = product.categories?.[0]?.name ?? product.category ?? 'Product';
+  const href = productHref(product);
   const bestMerchant = best?.offer.merchant ?? null;
   const storeLogo = bestMerchant?.logo ? mediaUrl(bestMerchant.logo) : null;
   const storeName = best ? merchantName(best.offer) : null;
@@ -47,7 +49,7 @@ export default function CommerceProductCard({
       }`}
       data-testid={`commerce-product-${product.slug}`}
     >
-      <Link href={`/products/${product.slug}`} className={imageBoxClass}>
+      <Link href={href} className={imageBoxClass}>
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -79,7 +81,7 @@ export default function CommerceProductCard({
             {category}
           </p>
         )}
-        <Link href={`/products/${product.slug}`}>
+        <Link href={href}>
           <h3 className={`product-card-title line-clamp-2 font-display leading-tight text-ink transition group-hover:text-primary ${
             catalogLayout ? 'mb-3 mt-1.5 h-[2.6em] overflow-hidden leading-[1.3]' : 'mt-3'
           } ${titleClassName}`}>
@@ -106,7 +108,7 @@ export default function CommerceProductCard({
           </div>
           {catalogLayout ? (
             <Link
-              href={`/products/${product.slug}`}
+              href={href}
               className="rounded-[9px] bg-primary px-3.5 py-2 font-display text-[0.8rem] font-semibold text-white transition hover:bg-primary-emphasis"
             >
               Compare
@@ -124,7 +126,7 @@ export default function CommerceProductCard({
         {showCompareButton && !catalogLayout && (
           <div className="mt-4 flex justify-start">
             <Link
-              href={`/products/${product.slug}`}
+              href={href}
               className="inline-flex bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis"
             >
               Compare

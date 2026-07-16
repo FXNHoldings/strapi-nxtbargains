@@ -497,23 +497,9 @@ article[data-testid^="commerce-product-"] .commerce-product-image {
 }
 
 [data-testid="home-guides"] .guide-compact-title {
-  font-size: 0.75rem !important;
+  font-size: 18px !important;
   font-weight: 700 !important;
-  line-height: 1.3 !important;
-}
-
-@media (min-width: 640px) {
-  [data-testid="home-guides"] .guide-compact-title {
-    font-size: 0.8125rem !important;
-    line-height: 1.35 !important;
-  }
-}
-
-@media (min-width: 1024px) {
-  [data-testid="home-guides"] .guide-compact-title {
-    font-size: 0.75rem !important;
-    line-height: 1.28 !important;
-  }
+  line-height: 1.35 !important;
 }
 
 /* Right column list panel — restore borders hidden by global borderless rule. */
@@ -524,6 +510,85 @@ article[data-testid^="commerce-product-"] .commerce-product-image {
 
 [data-testid="home-guides"] .guide-list-panel > :not([hidden]) ~ :not([hidden]) {
   border-top: 1px solid rgba(3, 3, 3, 0.12) !important;
+}
+
+/* Article category pages — uniform 1rem card titles. */
+.article-category-page h3 {
+  font-size: 1rem !important;
+  line-height: 1.34 !important;
+}
+
+/* Editorial category pages — shared layout styles. */
+.editorial-category-page .editorial-category-hero-inner,
+[data-testid^="editorial-category-"] .editorial-category-hero-inner {
+  width: 100%;
+  max-width: 1366px;
+  margin-inline: auto;
+}
+
+.editorial-category-page .editorial-category-filters,
+.editorial-category-page article,
+[data-testid^="editorial-category-"] .editorial-category-filters,
+[data-testid^="editorial-category-"] article {
+  border-color: rgba(3, 3, 3, 0.1) !important;
+}
+
+.editorial-category-page .editorial-feature-image-box,
+.editorial-category-page .editorial-spotlight-image-box,
+.editorial-category-page .editorial-grid-image-box,
+[data-testid^="editorial-category-"] .editorial-feature-image-box,
+[data-testid^="editorial-category-"] .editorial-spotlight-image-box,
+[data-testid^="editorial-category-"] .editorial-grid-image-box {
+  display: grid;
+  place-items: center;
+}
+
+.editorial-category-page .editorial-feature-image,
+.editorial-category-page .editorial-spotlight-image,
+.editorial-category-page .editorial-grid-image,
+[data-testid^="editorial-category-"] .editorial-feature-image,
+[data-testid^="editorial-category-"] .editorial-spotlight-image,
+[data-testid^="editorial-category-"] .editorial-grid-image {
+  object-fit: contain !important;
+  object-position: center;
+}
+
+.editorial-category-page .editorial-feature-image,
+[data-testid^="editorial-category-"] .editorial-feature-image {
+  block-size: 88% !important;
+  inline-size: 88% !important;
+  max-block-size: 88%;
+  max-inline-size: 88%;
+}
+
+.editorial-category-page .editorial-spotlight-image,
+[data-testid^="editorial-category-"] .editorial-spotlight-image {
+  block-size: 86% !important;
+  inline-size: 86% !important;
+  max-block-size: 86%;
+  max-inline-size: 86%;
+}
+
+.editorial-category-page .editorial-grid-image,
+[data-testid^="editorial-category-"] .editorial-grid-image {
+  block-size: 84% !important;
+  inline-size: 84% !important;
+  max-block-size: 84%;
+  max-inline-size: 84%;
+}
+
+.editorial-category-page .editorial-feature-title,
+[data-testid^="editorial-category-"] .editorial-feature-title {
+  font-size: clamp(1.45rem, 2.2vw, 1.95rem) !important;
+  line-height: 1.18 !important;
+}
+
+.editorial-category-page .editorial-spotlight-title,
+.editorial-category-page .editorial-grid-title,
+[data-testid^="editorial-category-"] .editorial-spotlight-title,
+[data-testid^="editorial-category-"] .editorial-grid-title {
+  font-size: 1rem !important;
+  line-height: 1.34 !important;
 }
 
 /* Coupon section — restore borders hidden by global borderless rule. */

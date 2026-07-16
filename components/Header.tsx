@@ -28,6 +28,7 @@ const NAV = [
       { href: '/brands', label: 'Brands' },
     ],
   },
+  { href: '/price-drops', label: 'Price Drops' },
   {
     href: '/deals',
     label: 'Blog',
@@ -39,7 +40,6 @@ const NAV = [
       { href: '/deals', label: 'Deals' },
     ],
   },
-  { href: '/price-drops', label: 'Price Drops' },
 ];
 
 const navTestId = (label: string) => `nav-${label.toLowerCase().replace(/\s+/g, '-')}`;

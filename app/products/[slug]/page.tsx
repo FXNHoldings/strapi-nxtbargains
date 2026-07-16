@@ -2,7 +2,8 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import type { Metadata } from 'next';
 import {
   bestOffer,
@@ -29,6 +30,7 @@ import {
   type CommerceReview,
 } from '@/lib/strapi';
 import { wrapImpactAffiliate } from '@/lib/impact-links';
+import { productCanonicalPath, primaryCategorySlug } from '@/lib/product-url';
 import { fmtDate } from '@/lib/format';
 import { SITE } from '@/lib/site';
 import PriceAlertForm from '@/components/PriceAlertForm';
@@ -95,16 +97,17 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const description =
     product.shortDescription ||
     `Compare current merchant prices for ${product.name} on ${SITE.name}.`;
+  const canonicalPath = productCanonicalPath(product);
 
   return {
     title: `${product.name} Prices`,
     description,
-    alternates: { canonical: `/products/${product.slug}` },
+    alternates: { canonical: canonicalPath },
     openGraph: {
       type: 'website',
       title: `${product.name} Prices`,
       description,
-      url: `${SITE.url}/products/${product.slug}`,
+      url: `${SITE.url}${canonicalPath}`,
       images: image ? [{ url: image }] : undefined,
     },
     twitter: {
@@ -121,8 +124,15 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
   const product = await getCommerceProduct(slug).catch(() => null);
   if (!product) notFound();
 
+  const categorySlug = primaryCategorySlug(product);
+  const headerList = await headers();
+  const isCategoryRoute = headerList.get('x-product-category-route') === '1';
+  if (categorySlug && !isCategoryRoute) {
+    redirect(`/category/${categorySlug}/${slug}`);
+  }
+
   const productCategorySlugs = new Set(product.categories?.map((item) => item.slug).filter(Boolean) ?? []);
-  const primaryCategorySlug = product.categories?.[0]?.slug;
+  const relatedCategorySlug = product.categories?.[0]?.slug;
   const sharesProductCategory = (item: CommerceProduct) =>
     item.categories?.some((category) => productCategorySlugs.has(category.slug)) ?? false;
   const similarProducts = await listSimilarCommerceProducts(product).catch(() => [] as CommerceProduct[]);
@@ -130,8 +140,8 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
   let related = comparable.filter((p) => p.slug !== product.slug && sharesProductCategory(p)).slice(0, 10);
   // Sparse catalog: if no name-similar products share this category, fall back
   // to other products from the same category only.
-  if (related.length < 5 && primaryCategorySlug) {
-    const more = await listCommerceProducts({ category: primaryCategorySlug, pageSize: 12 })
+  if (related.length < 5 && relatedCategorySlug) {
+    const more = await listCommerceProducts({ category: relatedCategorySlug, pageSize: 12 })
       .then((r) => r.data)
       .catch(() => [] as CommerceProduct[]);
     const seen = new Set([product.slug, ...related.map((p) => p.slug)]);
@@ -214,16 +224,18 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
             <Link href="/" className="hover:text-primary">Home</Link>
             <span>/</span>
             <Link href="/products" className="hover:text-primary">Products</Link>
-            {category && (
+            {category && categorySlug && (
+              <>
+                <span>/</span>
+                <Link href={`/category/${categorySlug}`} className="hover:text-primary">{category}</Link>
+              </>
+            )}
+            {category && !categorySlug && (
               <>
                 <span>/</span>
                 <span className="text-ink/60">{category}</span>
               </>
             )}
-            <span>/</span>
-            <span className="max-w-[52vw] truncate text-ink/70" aria-current="page">
-              {product.name}
-            </span>
           </nav>
 
           <article className="mt-5 border border-ink/10 bg-white">
