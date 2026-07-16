@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import CommerceProductCard from '@/components/CommerceProductCard';
+import ProductCatalogPagination from '@/components/ProductCatalogPagination';
 import ProductFiltersSidebar from '@/components/ProductFiltersSidebar';
 import { SITE } from '@/lib/site';
 import {
@@ -213,35 +214,11 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                 </div>
               )}
 
-              {pageCount > 1 && (
-                <nav className="mt-12 flex flex-wrap items-center justify-center gap-3" aria-label="Product pagination">
-                  {page > 1 && (
-                    <Link
-                      href={`/products${productPageQuery(filters, page - 1)}`}
-                      className="inline-flex min-h-11 items-center justify-center border border-ink/15 px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-ink/70 transition hover:border-primary hover:text-primary"
-                    >
-                      Previous
-                    </Link>
-                  )}
-                  <span className="px-2 text-sm text-ink/55">Page {page} of {pageCount}</span>
-                  {page < pageCount && (
-                    <>
-                      <Link
-                        href={`/products${productPageQuery(filters, page + 1)}`}
-                        className="inline-flex min-h-11 items-center justify-center bg-ink px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-primary"
-                      >
-                        View more
-                      </Link>
-                      <Link
-                        href={`/products${productPageQuery(filters, page + 1)}`}
-                        className="inline-flex min-h-11 items-center justify-center border border-ink/15 px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-ink/70 transition hover:border-primary hover:text-primary"
-                      >
-                        Next
-                      </Link>
-                    </>
-                  )}
-                </nav>
-              )}
+              <ProductCatalogPagination
+                page={page}
+                pageCount={pageCount}
+                pageHref={(targetPage) => `/products${productPageQuery(filters, targetPage)}`}
+              />
             </div>
           </div>
         </div>

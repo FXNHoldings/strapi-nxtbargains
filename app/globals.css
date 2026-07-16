@@ -343,13 +343,18 @@ article[data-testid^="bestseller-"] .product-card-title {
   overflow: hidden;
 }
 
-/* Today's biggest price drops: keep every product image on a square canvas. */
-[data-testid="home-price-drops"] .price-drop-image-box {
+/* Uniform product image canvas — shared by home price drops + category catalog. */
+[data-testid="home-price-drops"] .price-drop-image-box,
+main[data-testid^="product-category-"] .price-drop-image-box,
+.uniform-product-image-box {
   aspect-ratio: 1 / 1;
   inline-size: 100%;
+  place-items: center;
 }
 
-[data-testid="home-price-drops"] .price-drop-image {
+[data-testid="home-price-drops"] .price-drop-image,
+main[data-testid^="product-category-"] .price-drop-image,
+.uniform-product-image {
   block-size: 82% !important;
   inline-size: 82% !important;
   max-block-size: 82%;
@@ -411,6 +416,10 @@ article[data-testid^="commerce-product-"] .commerce-product-image {
   object-fit: contain !important;
   object-position: center;
   padding: 0 !important;
+}
+
+main[data-testid^="product-category-"] .product-category-grid article {
+  height: 100%;
 }
 
 /* Buying guides editorial block (originfacts Car Rentals layout). */

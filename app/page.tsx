@@ -263,13 +263,13 @@ function SectionHead({
 function DealCard({ deal }: { deal: Deal }) {
   return (
     <Link href={deal.href} className="group flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white transition hover:-translate-y-1.5 hover:shadow-[0_26px_46px_-26px_rgba(13,27,42,0.42)]" data-testid={`pricedrop-${deal.product.slug}`}>
-      <div className="price-drop-image-box relative grid aspect-square w-full place-items-center overflow-hidden bg-white p-4 sm:p-5">
+      <div className="price-drop-image-box uniform-product-image-box relative grid aspect-square w-full place-items-center overflow-hidden bg-white p-4 sm:p-5">
         {deal.pct > 0 && (
           <span className="absolute left-2.5 top-2.5 z-10 rounded-[7px] bg-primary px-[9px] py-1 font-display text-[0.74rem] font-bold text-white">-{deal.pct}%</span>
         )}
         {deal.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={deal.image} alt={deal.name} className="price-drop-image block h-full w-full object-contain mix-blend-multiply transition duration-500 group-hover:scale-[1.04]" />
+          <img src={deal.image} alt={deal.name} className="price-drop-image uniform-product-image block h-full w-full object-contain mix-blend-multiply transition duration-500 group-hover:scale-[1.04]" />
         ) : (
           <span className="flex h-full w-full items-center justify-center font-display text-xl font-bold text-ink/25">NXT</span>
         )}

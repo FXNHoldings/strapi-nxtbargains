@@ -11,6 +11,15 @@ const TOKEN = process.env.STRAPI_API_TOKEN;
 // JSON-array operator Strapi serves reliably here; $contains 500s).
 const SITE_PRODUCT_TAG = process.env.NEXT_PUBLIC_SITE_PRODUCT_TAG || 'nxt-bargains';
 
+/** Commerce categories hidden on NXT.Bargains (shared Strapi taxonomy includes other storefronts). */
+const EXCLUDED_COMMERCE_CATEGORY_SLUGS = new Set([
+  'exfoliators-and-scrubs',
+]);
+
+function isVisibleCommerceCategory(category: Pick<CommerceCategory, 'slug'>): boolean {
+  return !EXCLUDED_COMMERCE_CATEGORY_SLUGS.has(category.slug);
+}
+
 export type StrapiImage = { url: string; alternativeText?: string; width?: number; height?: number } | null;
 
 export type NxtPostType =
@@ -319,10 +328,11 @@ export async function listCommerceCategories(): Promise<CommerceCategory[]> {
     sort: ['name:asc'],
     pagination: { pageSize: 100 },
   });
-  return res.data;
+  return res.data.filter(isVisibleCommerceCategory);
 }
 
 export async function getCommerceCategory(slug: string): Promise<CommerceCategory | null> {
+  if (!isVisibleCommerceCategory({ slug })) return null;
   const res = await strapiFetch<ListResponse<CommerceCategory>>('commerce-categories', {
     filters: { slug: { $eqi: slug }, categoryStatus: { $eq: 'active' } },
     pagination: { pageSize: 1 },

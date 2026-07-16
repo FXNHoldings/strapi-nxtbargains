@@ -34,10 +34,10 @@ export default function CommerceProductCard({
   const storeName = best ? merchantName(best.offer) : null;
   const useUniformImage = uniformImage || catalogLayout;
   const imageBoxClass = useUniformImage
-    ? `trending-image-box commerce-product-image-box grid aspect-square place-items-center overflow-hidden bg-white ${catalogLayout ? 'mb-3.5 rounded-[11px]' : ''}`
+    ? `price-drop-image-box uniform-product-image-box commerce-product-image-box grid aspect-square w-full place-items-center overflow-hidden bg-white p-4 sm:p-5 ${catalogLayout ? 'mb-3.5 rounded-[11px]' : ''}`
     : 'commerce-product-image-box grid overflow-hidden bg-white';
   const imageClass = useUniformImage
-    ? 'trending-image commerce-product-image h-full w-full object-contain mix-blend-multiply transition duration-500 group-hover:scale-[1.04]'
+    ? 'price-drop-image uniform-product-image commerce-product-image block h-full w-full object-contain mix-blend-multiply transition duration-500 group-hover:scale-[1.04]'
     : 'commerce-product-image h-52 w-full object-contain p-5 mix-blend-multiply transition duration-500 group-hover:scale-[1.03]';
 
   return (
