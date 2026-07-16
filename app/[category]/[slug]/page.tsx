@@ -5,6 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getPost, listPostComments, listPosts, mediaUrl, type NxtPost } from '@/lib/strapi';
 import { SECTIONS, SITE } from '@/lib/site';
+import { breadcrumbJsonLd } from '@/lib/seo';
 import { firstImageUrl, fmtDate, primaryCategorySlug, postPath } from '@/lib/format';
 import PostContent from '@/components/PostContent';
 import PostPriceComparison from '@/components/PostPriceComparison';
@@ -158,6 +159,12 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
     mainEntityOfPage: `${SITE.url}/${category}/${post.slug}`,
   };
 
+  const breadcrumbLd = breadcrumbJsonLd([
+    { name: 'Home', url: `${SITE.url}/` },
+    { name: categoryName(category), url: `${SITE.url}/${category}` },
+    { name: post.title, url: `${SITE.url}/${category}/${post.slug}` },
+  ]);
+
   return (
     <article
       className="bg-white"
@@ -172,6 +179,10 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
 
       <div className="mx-auto max-w-7xl px-6">

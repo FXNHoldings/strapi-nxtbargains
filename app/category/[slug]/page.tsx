@@ -17,6 +17,7 @@ import {
   listCommerceCategories,
   listCommerceProducts,
 } from '@/lib/strapi';
+import { pageOpenGraph } from '@/lib/seo';
 
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -45,10 +46,18 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const category = await getCommerceCategory(slug).catch(() => null);
   if (!category) return { title: 'Product category' };
 
+  const description = categoryPageDescription(category);
+  const path = `/category/${category.slug}`;
+
   return {
     title: `${category.name} Products`,
-    description: categoryPageDescription(category),
-    alternates: { canonical: `/category/${category.slug}` },
+    description,
+    alternates: { canonical: path },
+    ...pageOpenGraph({
+      title: `${category.name} Products`,
+      description,
+      path,
+    }),
   };
 }
 

@@ -18,7 +18,13 @@ function StoreLogo({ name, logo, className }: { name: string; logo?: string | nu
   );
 }
 
-export default function StoreLinkTile({ store }: { store: CouponStoreLink }) {
+export default function StoreLinkTile({
+  store,
+  newTab = false,
+}: {
+  store: CouponStoreLink;
+  newTab?: boolean;
+}) {
   const logo =
     sourceLogoForStore(store.name) ||
     (store.domain ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(store.domain)}&sz=128` : store.logo || null);
@@ -26,6 +32,8 @@ export default function StoreLinkTile({ store }: { store: CouponStoreLink }) {
   return (
     <Link
       href={store.href}
+      target={newTab ? '_blank' : undefined}
+      rel={newTab ? 'noopener noreferrer' : undefined}
       className="group flex min-h-[80px] items-center gap-3 border border-ink/10 bg-white p-3.5 transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_16px_32px_-22px_rgba(13,27,42,0.4)]"
     >
       <StoreLogo name={store.name} logo={logo} className="h-11 w-12" />

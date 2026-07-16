@@ -13,6 +13,7 @@ import {
 import { getEditorialCategoryConfig } from '@/lib/editorial-category-config';
 import { getCategory, listPosts } from '@/lib/strapi';
 import { ARTICLE_SIDEBAR_CATEGORIES, resolveArticleCategoryBlurb, SECTIONS, SITE } from '@/lib/site';
+import { pageOpenGraph } from '@/lib/seo';
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -40,10 +41,13 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   if (isReserved(category)) return {};
   const cmsCategory = await getCategory(category).catch(() => null);
   const name = await resolveCategoryName(category, cmsCategory?.name);
+  const description =
+    resolveArticleCategoryBlurb(category, cmsCategory?.description) ?? `${name} from ${SITE.name} — ${SITE.tagline}`;
   return {
     title: name,
-    description: resolveArticleCategoryBlurb(category, cmsCategory?.description) ?? `${name} from ${SITE.name} — ${SITE.tagline}`,
+    description,
     alternates: { canonical: `/${category}` },
+    ...pageOpenGraph({ title: name, description, path: `/${category}` }),
   };
 }
 

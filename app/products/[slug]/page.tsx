@@ -15,6 +15,8 @@ import {
   offerPrice,
   offerUrl,
   productImageUrl,
+  resolveOfferDestination,
+  sanitizeOfferUrl,
   type CommerceOfferRow,
 } from '@/lib/commerce';
 import {
@@ -30,9 +32,13 @@ import {
   type CommerceReview,
 } from '@/lib/strapi';
 import { wrapImpactAffiliate } from '@/lib/impact-links';
+import { listCouponPageData, type CouponBrandGroup, type Retailer } from '@/lib/coupon-data';
+import { buildCouponStoreLinks, couponRetailersForStoreLinks } from '@/lib/coupon-store-links';
+import StoreLinkTile from '@/components/StoreLinkTile';
 import { productCanonicalPath, primaryCategorySlug } from '@/lib/product-url';
 import { fmtDate } from '@/lib/format';
 import { SITE } from '@/lib/site';
+import { breadcrumbJsonLd, pageOpenGraph } from '@/lib/seo';
 import PriceAlertForm from '@/components/PriceAlertForm';
 import ReviewForm from '@/components/ReviewForm';
 import CommerceProductCard from '@/components/CommerceProductCard';
@@ -46,22 +52,26 @@ type Params = { slug: string };
 // Outbound buy link: Impact deep-link if the merchant matches an approved Impact
 // campaign (e.g. Whatnot), otherwise the offer's own affiliate/product URL.
 function buyUrl(offer: CommerceOffer, product?: CommerceProduct): string {
-  return wrapImpactAffiliate(offer) ?? safeAffiliateUrl(offer) ?? amazonProductUrl(offer, product) ?? offerUrl(offer);
+  const affiliate = sanitizeOfferUrl(offer.affiliateUrl);
+  const resolved = resolveOfferDestination(offer, product);
+
+  if (affiliate) {
+    const normalizedOffer: CommerceOffer = {
+      ...offer,
+      affiliateUrl: affiliate,
+      productUrl: resolved ?? offer.productUrl,
+    };
+    return wrapImpactAffiliate(normalizedOffer) ?? affiliate;
+  }
+
+  if (!resolved) return offer.merchant?.websiteUrl ?? '#';
+
+  const normalizedOffer: CommerceOffer = { ...offer, productUrl: resolved, affiliateUrl: null };
+  return wrapImpactAffiliate(normalizedOffer) ?? amazonProductUrl(normalizedOffer, product) ?? resolved;
 }
 
 function safeAffiliateUrl(offer: CommerceOffer): string | null {
-  const value = offer.affiliateUrl?.trim();
-  if (!value || !/^https?:\/\//i.test(value)) return null;
-
-  try {
-    const url = new URL(value);
-    const hostname = url.hostname.replace(/^www\./, '').toLowerCase();
-    const isAmazon = hostname === 'amazon.com' || hostname.endsWith('.amazon.com') || hostname.includes('amazon.');
-    const isAmazonSearch = isAmazon && (url.pathname === '/s' || url.searchParams.has('k'));
-    return isAmazonSearch ? null : value;
-  } catch {
-    return null;
-  }
+  return sanitizeOfferUrl(offer.affiliateUrl);
 }
 
 function amazonProductUrl(offer: CommerceOffer, product?: CommerceProduct): string | null {
@@ -104,19 +114,12 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     title: `${product.name} Prices`,
     description,
     alternates: { canonical: canonicalPath },
-    openGraph: {
-      type: 'website',
+    ...pageOpenGraph({
       title: `${product.name} Prices`,
       description,
-      url: `${SITE.url}${canonicalPath}`,
-      images: image ? [{ url: image }] : undefined,
-    },
-    twitter: {
-      card: image ? 'summary_large_image' : 'summary',
-      title: `${product.name} Prices`,
-      description,
-      images: image ? [image] : undefined,
-    },
+      path: canonicalPath,
+      image,
+    }),
   };
 }
 
@@ -153,6 +156,11 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
     [product.documentId].filter(Boolean) as string[],
   ).catch(() => [] as CommercePriceSnapshot[]);
   const reviews = await listProductReviews(product.documentId ?? '').catch(() => [] as CommerceReview[]);
+  const couponPageData = await listCouponPageData().catch(() => ({
+    coupons: [],
+    retailers: [] as Retailer[],
+    brandGroups: [] as CouponBrandGroup[],
+  }));
   const best = bestOffer(rows);
   const image = productImageUrl(product);
   const brand = product.brandRef?.name ?? product.brand;
@@ -186,6 +194,10 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
       : `Compare current prices for ${product.name} across trusted merchants.`);
   const discount = best ? discountPercent(best.offer) : null;
   const updatedLabel = product.updatedAt ? fmtDate(product.updatedAt) : 'Today';
+  const canonicalPath = productCanonicalPath(product);
+  const reviewCount = reviews.length;
+  const averageRating =
+    reviewCount > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount : null;
 
   const productJsonLd = {
     '@context': 'https://schema.org',
@@ -198,6 +210,34 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
     gtin: product.gtin ?? undefined,
     mpn: product.mpn ?? undefined,
     description: product.shortDescription ?? product.description ?? undefined,
+    ...(averageRating !== null
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: Math.round(averageRating * 10) / 10,
+            reviewCount,
+            bestRating: 5,
+            worstRating: 1,
+          },
+        }
+      : {}),
+    ...(reviewCount > 0
+      ? {
+          review: reviews.slice(0, 10).map((review) => ({
+            '@type': 'Review',
+            author: { '@type': 'Person', name: review.authorName },
+            datePublished: review.createdAt,
+            reviewRating: {
+              '@type': 'Rating',
+              ratingValue: review.rating,
+              bestRating: 5,
+              worstRating: 1,
+            },
+            name: review.title ?? undefined,
+            reviewBody: review.body,
+          })),
+        }
+      : {}),
     offers: rows.length
       ? {
           '@type': 'AggregateOffer',
@@ -212,16 +252,31 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
       : undefined,
   };
 
+  const breadcrumbLd = breadcrumbJsonLd([
+    { name: 'Home', url: `${SITE.url}/` },
+    { name: 'Products', url: `${SITE.url}/products` },
+    ...(category && categorySlug
+      ? [{ name: category, url: `${SITE.url}/category/${categorySlug}` }]
+      : category
+        ? [{ name: category }]
+        : []),
+    { name: product.name, url: `${SITE.url}${canonicalPath}` },
+  ]);
+
   return (
     <main className="bg-white" data-testid={`product-price-${product.slug}`}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
 
-      <section className="bg-white py-6 sm:py-8">
+      <section className="product-breadcrumb-section bg-[#f8f8f8] py-4">
         <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
-          <nav className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-ink/45" aria-label="Breadcrumb">
+          <nav className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.16em] text-ink/45" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-primary">Home</Link>
             <span>/</span>
             <Link href="/products" className="hover:text-primary">Products</Link>
@@ -237,9 +292,15 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
                 <span className="text-ink/60">{category}</span>
               </>
             )}
+            <span>/</span>
+            <span className="line-clamp-1 text-ink/70">{product.name}</span>
           </nav>
+        </div>
+      </section>
 
-          <article className="mt-5 border border-ink/10 bg-white">
+      <section className="bg-white py-6 sm:py-8">
+        <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
+          <article className="border border-ink/10 bg-white">
             <div className="grid lg:grid-cols-[34%_minmax(0,1fr)] lg:gap-[10px]">
               <div className="relative flex min-h-[340px] items-center justify-center border-b border-ink/10 p-7 lg:min-h-[410px] lg:border-b-0 lg:border-r">
                 {discount !== null && (
@@ -252,6 +313,8 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
                   <img
                     src={image}
                     alt={product.primaryImage?.alternativeText || product.name}
+                    fetchPriority="high"
+                    decoding="async"
                     className="product-main-image max-h-[330px] w-full object-contain lg:max-h-[390px]"
                   />
                 ) : (
@@ -339,7 +402,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
         </div>
       </section>
 
-      <section className="pb-12">
+      <section className="pb-6">
         <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
           <ProductInfoTabs
             product={product}
@@ -350,11 +413,13 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
             specs={product.specs}
             reviews={reviews}
             productDocumentId={product.documentId ?? ''}
+            retailers={couponPageData.retailers}
+            brandGroups={couponPageData.brandGroups}
           />
         </div>
       </section>
 
-      <section className="border-t border-ink/10 bg-white py-12" data-testid="price-history">
+      <section className="border-t border-ink/10 bg-white pb-12 pt-6" data-testid="price-history">
         <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
           <PriceHistorySection
             productName={product.name}
@@ -407,7 +472,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
               <ProductCarousel
                 perView={6}
                 items={related.slice(0, 10).map((p) => (
-                  <CommerceProductCard key={p.id} product={p} showCompareButton={false} />
+                  <CommerceProductCard key={p.id} product={p} showCompareButton={false} uniformImage />
                 ))}
               />
             </div>
@@ -427,6 +492,8 @@ function ProductInfoTabs({
   specs,
   reviews,
   productDocumentId,
+  retailers,
+  brandGroups,
 }: {
   product: CommerceProduct;
   productId: number;
@@ -436,179 +503,159 @@ function ProductInfoTabs({
   specs?: Record<string, unknown> | null;
   reviews: CommerceReview[];
   productDocumentId: string;
+  retailers: Retailer[];
+  brandGroups: CouponBrandGroup[];
 }) {
   const useGsmarenaSpecsInSpecifications = productHasCategory(product, 'Smart Phones');
   const hideSpecifications = productHasCategory(product, 'Smart Phones');
   const featureSpecs = productFeatureSpecs(specs);
-  const specSource = productSpecificationSource(specs);
   const additionalInfoEntries = productAdditionalInfoEntries(product);
   const gsmarenaSpecGroups = gsmarenaSpecificationGroups(specs);
   const specEntries = hideSpecifications && !useGsmarenaSpecsInSpecifications ? [] : productSpecificationEntries(specs);
 
-  const tabName = `product-info-tabs-${productId}`;
-  const descriptionId = `description-tab-${productId}`;
-  const featuresId = `features-tab-${productId}`;
-  const specificationsId = `specifications-tab-${productId}`;
-  const additionalInfoId = `additional-info-tab-${productId}`;
-  const reviewsId = `reviews-tab-${productId}`;
+  const accordionId = `product-info-accordion-${productId}`;
 
   return (
-    <div className="product-info-tabs border border-ink/10 bg-white">
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            .product-info-tabs .product-tab-panel { display: none; }
-            .product-info-tabs:has(.tab-input-description:checked) .tab-panel-description { display: block; }
-            .product-info-tabs:has(.tab-input-features:checked) .tab-panel-features { display: block; }
-            .product-info-tabs:has(.tab-input-specifications:checked) .tab-panel-specifications { display: block; }
-            .product-info-tabs:has(.tab-input-additional-info:checked) .tab-panel-additional-info { display: block; }
-            .product-info-tabs:has(.tab-input-reviews:checked) .tab-panel-reviews { display: block; }
-            .product-info-tabs:has(.tab-input-description:checked) .tab-label-description,
-            .product-info-tabs:has(.tab-input-features:checked) .tab-label-features,
-            .product-info-tabs:has(.tab-input-specifications:checked) .tab-label-specifications,
-            .product-info-tabs:has(.tab-input-additional-info:checked) .tab-label-additional-info,
-            .product-info-tabs:has(.tab-input-reviews:checked) .tab-label-reviews { color: #4778e6; border-bottom-color: #4778e6; }
-          `,
-        }}
-      />
-      <input id={descriptionId} name={tabName} type="radio" className="sr-only tab-input-description" defaultChecked />
-      <input id={featuresId} name={tabName} type="radio" className="sr-only tab-input-features" />
-      <input id={specificationsId} name={tabName} type="radio" className="sr-only tab-input-specifications" />
-      <input id={additionalInfoId} name={tabName} type="radio" className="sr-only tab-input-additional-info" />
-      <input id={reviewsId} name={tabName} type="radio" className="sr-only tab-input-reviews" />
-
-      <div className="flex overflow-x-auto border-b border-ink/10 text-sm font-bold uppercase tracking-[0.12em] text-ink/60" role="tablist" aria-label="Product information">
-        <label htmlFor={descriptionId} className="tab-label-description cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
-          Description
-        </label>
-        <label htmlFor={featuresId} className="tab-label-features cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
-          Features
-        </label>
-        <label htmlFor={specificationsId} className="tab-label-specifications cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
-          Specifications
-        </label>
-        <label htmlFor={additionalInfoId} className="tab-label-additional-info cursor-pointer border-b-2 border-transparent border-r border-ink/10 px-5 py-4 transition hover:text-primary">
-          Additional Info
-        </label>
-        <label htmlFor={reviewsId} className="tab-label-reviews cursor-pointer border-b-2 border-transparent px-5 py-4 transition hover:text-primary">
-          Reviews{reviews.length ? ` (${reviews.length})` : ''}
-        </label>
-      </div>
-
-      <div className="product-tab-panel tab-panel-description">
-        <div className="p-6 sm:p-8">
-          {description ? (
-            <div className="text-[1rem] leading-7 text-ink/70">
-              <ProductDescription markdown={description} />
-            </div>
-          ) : (
-            <p className="text-[14px] leading-7 text-ink/70">{summary}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="product-tab-panel tab-panel-features">
-        <div className="p-6 sm:p-8">
-          <h3 className="font-display text-2xl font-bold text-ink">Features</h3>
-          {featureSpecs.length > 0 ? (
-            <ul className="mt-5 list-disc space-y-3 pl-5 text-sm leading-6 text-ink/70 marker:text-primary">
-              {featureSpecs.map((feature) => (
-                <li key={feature} className="pl-1">
-                  {feature}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="mt-5 border border-ink/10 bg-paper p-6 text-sm leading-6 text-ink/60">
-              Product features have not been imported for this item yet.
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="product-tab-panel tab-panel-specifications">
-        <div className="p-6 sm:p-8">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <h3 className="font-display text-2xl font-bold text-ink">Specifications</h3>
-            {specSource && (
-              <p className="text-xs leading-5 text-ink/50">
-                Imported from {specSource}
-              </p>
-            )}
-          </div>
-
-          {useGsmarenaSpecsInSpecifications ? (
-            <GsmarenaSpecGroups groups={gsmarenaSpecGroups} />
-          ) : specEntries.length ? (
-            <div className="mt-5">
-              <dl className="grid overflow-hidden border-0 text-base">
-                {specEntries.map((entry) => (
-                  <div key={entry.label} className="grid gap-2 border-b border-ink/10 px-4 py-3 last:border-b-0 sm:grid-cols-[190px_minmax(0,1fr)]">
-                    <dt className="font-bold text-ink/55">{entry.label}</dt>
-                    <dd className="text-ink">{entry.value}</dd>
+    <div className="product-info-section">
+      <h2 className="product-info-section-title">About this item</h2>
+      <div className="product-info-layout">
+        <div className="product-info-main">
+          <div className="product-info-accordion bg-white" id={accordionId}>
+            <details className="product-accordion-item" name={accordionId} open>
+              <summary>Product details</summary>
+              <div className="product-accordion-panel tab-panel-description">
+                {description ? (
+                  <div className="leading-7 text-ink/70">
+                    <ProductDescription markdown={description} />
                   </div>
-                ))}
-              </dl>
-            </div>
-          ) : (
-            <div className="mt-5 border border-ink/10 bg-paper p-6 text-base leading-6 text-ink/60">
-              Product specifications have not been imported for this item yet.
-            </div>
-          )}
-        </div>
-      </div>
+                ) : (
+                  <p className="leading-7 text-ink/70">{summary}</p>
+                )}
+              </div>
+            </details>
 
-      <div className="product-tab-panel tab-panel-additional-info">
-        <div className="p-6 sm:p-8">
-          <h3 className="font-display text-2xl font-bold text-ink">Additional Info</h3>
-          {additionalInfoEntries.length ? (
-            <dl className="mt-5 grid overflow-hidden border-0 text-base">
-              {additionalInfoEntries.map((entry) => (
-                <div key={entry.label} className="grid gap-2 border-b border-ink/10 px-4 py-3 last:border-b-0 sm:grid-cols-[190px_minmax(0,1fr)]">
-                  <dt className="font-bold text-ink/55">{entry.label}</dt>
-                  <dd className="text-ink">{entry.value}</dd>
+            <details className="product-accordion-item" name={accordionId}>
+              <summary>Features</summary>
+              <div className="product-accordion-panel tab-panel-features">
+                {featureSpecs.length > 0 ? (
+                  <ul className="list-disc space-y-3 pl-5 leading-6 text-ink/70 marker:text-primary">
+                    {featureSpecs.map((feature) => (
+                      <li key={feature} className="pl-1">
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="border border-ink/10 bg-paper p-6 leading-6 text-ink/60">
+                    Product features have not been imported for this item yet.
+                  </div>
+                )}
+              </div>
+            </details>
+
+            <details className="product-accordion-item" name={accordionId}>
+              <summary>Specifications</summary>
+              <div className="product-accordion-panel tab-panel-specifications">
+                {useGsmarenaSpecsInSpecifications ? (
+                  <GsmarenaSpecGroups groups={gsmarenaSpecGroups} />
+                ) : specEntries.length ? (
+                  <KeySpecsList entries={specEntries} className="mt-0" />
+                ) : (
+                  <div className="border border-ink/10 bg-paper p-6 leading-6 text-ink/60">
+                    Product specifications have not been imported for this item yet.
+                  </div>
+                )}
+              </div>
+            </details>
+
+            <details className="product-accordion-item" name={accordionId}>
+              <summary>Additional Info</summary>
+              <div className="product-accordion-panel tab-panel-additional-info">
+                {additionalInfoEntries.length ? (
+                  <dl className="grid overflow-hidden border-0">
+                    {additionalInfoEntries.map((entry) => (
+                      <div key={entry.label} className="grid gap-2 border-b border-ink/10 px-4 py-3 last:border-b-0 sm:grid-cols-[190px_minmax(0,1fr)]">
+                        <dt className="font-bold text-ink/55">{entry.label}</dt>
+                        <dd className="text-ink">{entry.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <div className="border border-ink/10 bg-paper p-6 leading-6 text-ink/60">
+                    Additional product information is not available for this item yet.
+                  </div>
+                )}
+              </div>
+            </details>
+
+            <details className="product-accordion-item" name={accordionId}>
+              <summary>Reviews{reviews.length ? ` (${reviews.length})` : ''}</summary>
+              <div className="product-accordion-panel tab-panel-reviews">
+                <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+                  <div>
+                    {reviews.length === 0 ? (
+                      <p className="leading-6 text-ink/60">No reviews yet — be the first to review {productName}.</p>
+                    ) : (
+                      <ul className="divide-y divide-ink/10">
+                        {reviews.map((r) => (
+                          <li key={r.id} className="py-5 first:pt-0">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm text-amber-400" aria-label={`${r.rating} out of 5`}>
+                                {'★'.repeat(Math.max(0, Math.min(5, Math.round(r.rating))))}
+                                <span className="text-ink/20">{'★'.repeat(5 - Math.max(0, Math.min(5, Math.round(r.rating))))}</span>
+                              </span>
+                              <span className="font-display text-sm font-bold text-ink">{r.authorName}</span>
+                              <span className="text-xs text-ink/40">{fmtDate(r.createdAt)}</span>
+                            </div>
+                            {r.title && <p className="mt-2 font-display font-bold text-ink">{r.title}</p>}
+                            <p className="mt-1.5 leading-6 text-ink/70">{r.body}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <ReviewForm productDocumentId={productDocumentId} />
                 </div>
-              ))}
-            </dl>
-          ) : (
-            <div className="mt-5 border border-ink/10 bg-paper p-6 text-base leading-6 text-ink/60">
-              Additional product information is not available for this item yet.
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="product-tab-panel tab-panel-reviews">
-        <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
-          <div>
-            <h3 className="font-display text-2xl font-bold text-ink">
-              Reviews{reviews.length ? ` (${reviews.length})` : ''}
-            </h3>
-            {reviews.length === 0 ? (
-              <p className="mt-4 text-base leading-6 text-ink/60">No reviews yet — be the first to review {productName}.</p>
-            ) : (
-              <ul className="mt-5 divide-y divide-ink/10">
-                {reviews.map((r) => (
-                  <li key={r.id} className="py-5 first:pt-0">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-amber-400" aria-label={`${r.rating} out of 5`}>
-                        {'★'.repeat(Math.max(0, Math.min(5, Math.round(r.rating))))}
-                        <span className="text-ink/20">{'★'.repeat(5 - Math.max(0, Math.min(5, Math.round(r.rating))))}</span>
-                      </span>
-                      <span className="font-display text-sm font-bold text-ink">{r.authorName}</span>
-                      <span className="text-xs text-ink/40">{fmtDate(r.createdAt)}</span>
-                    </div>
-                    {r.title && <p className="mt-2 font-display text-base font-bold text-ink">{r.title}</p>}
-                    <p className="mt-1.5 text-base leading-6 text-ink/70">{r.body}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
+              </div>
+            </details>
           </div>
-          <ReviewForm productDocumentId={productDocumentId} />
         </div>
+
+        <ProductStoreLinksSidebar retailers={retailers} brandGroups={brandGroups} />
       </div>
     </div>
+  );
+}
+
+function ProductStoreLinksSidebar({
+  retailers,
+  brandGroups,
+}: {
+  retailers: Retailer[];
+  brandGroups: CouponBrandGroup[];
+}) {
+  const focusedRetailers = couponRetailersForStoreLinks(retailers, brandGroups);
+  const storeLinks = buildCouponStoreLinks(focusedRetailers);
+
+  return (
+    <aside className="product-info-sidebar">
+      <p className="product-info-sidebar-eyebrow">Shop by store</p>
+      <h3 className="product-info-sidebar-title">Popular Coupons</h3>
+      {storeLinks.length > 0 ? (
+        <>
+          <div className="product-info-sidebar-stores">
+            {storeLinks.slice(0, 6).map((store) => (
+              <StoreLinkTile key={store.slug} store={store} newTab />
+            ))}
+          </div>
+          <Link href="/stores" className="product-info-sidebar-directory" target="_blank" rel="noopener noreferrer">
+            View More →
+          </Link>
+        </>
+      ) : (
+        <p className="product-info-sidebar-empty">Popular store coupon pages will appear here when available.</p>
+      )}
+    </aside>
   );
 }
 
@@ -619,26 +666,30 @@ type PriceHistoryEntry = {
   merchantName?: string;
 };
 
+function KeySpecsList({ entries, className = 'mt-5' }: { entries: SpecificationEntry[]; className?: string }) {
+  return (
+    <dl className={`product-key-specs ${className}`}>
+      {entries.map((entry) => (
+        <div key={entry.label} className="product-key-specs-row">
+          <dt>{entry.label}</dt>
+          <dd>{entry.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function GsmarenaSpecGroups({ groups }: { groups: SpecificationGroup[] }) {
   if (!groups.length) {
     return null;
   }
 
   return (
-    <div className="mt-5 grid gap-6">
+    <div className="grid gap-8">
       {groups.map((group) => (
-        <section key={group.category} className="border border-ink/10">
-          <h4 className="bg-paper px-4 py-3 font-display text-base font-bold text-ink">
-            {group.category}
-          </h4>
-          <dl className="grid text-base">
-            {group.specifications.map((entry) => (
-              <div key={`${group.category}-${entry.label}`} className="grid gap-2 border-t border-ink/10 px-4 py-3 sm:grid-cols-[190px_minmax(0,1fr)]">
-                <dt className="font-bold text-ink/55">{entry.label}</dt>
-                <dd className="text-ink">{entry.value}</dd>
-              </div>
-            ))}
-          </dl>
+        <section key={group.category}>
+          <h6 className="mb-3 font-display text-base font-bold text-ink">{group.category}</h6>
+          <KeySpecsList entries={group.specifications} />
         </section>
       ))}
     </div>
@@ -728,7 +779,7 @@ function PriceHistorySection({
     <div className="border border-ink/10 bg-white">
       <div className="flex min-h-11 items-center justify-between border-b border-ink/10 bg-white px-4">
         <div className="flex items-center gap-3">
-          <h5 className="font-display text-lg font-bold text-ink">Price History</h5>
+          <h2 className="font-display text-lg font-bold text-ink">Price History</h2>
         </div>
       </div>
       {content}
@@ -1127,13 +1178,6 @@ function productFeatureSpecs(specs?: Record<string, unknown> | null): string[] {
     .slice(0, 30);
 }
 
-function productSpecificationSource(specs?: Record<string, unknown> | null): string | null {
-  if (!isPlainRecord(specs)) return null;
-  return typeof specs.specSourceMerchant === 'string' && specs.specSourceMerchant.trim()
-    ? specs.specSourceMerchant.trim()
-    : null;
-}
-
 function formatSpecValue(value: unknown): string | undefined {
   if (value === null || value === undefined || value === '') return undefined;
   if (typeof value === 'string') return value.replace(/\s+/g, ' ').trim() || undefined;
@@ -1389,7 +1433,7 @@ function ProductDescription({ markdown }: { markdown: string }) {
       para.push(lines[i]);
       i += 1;
     }
-    blocks.push(<p key={key++} className="mt-3 text-[1rem] first:mt-0">{inline(para.join(' '))}</p>);
+    blocks.push(<p key={key++} className="mt-3 first:mt-0">{inline(para.join(' '))}</p>);
   }
   return <div>{blocks}</div>;
 }

@@ -30,8 +30,111 @@ export function merchantName(offer: CommerceOffer): string {
   return (offer.merchant?.name ?? 'Merchant').replace(/\s+Affiliate Program$/i, '');
 }
 
-export function offerUrl(offer: CommerceOffer): string {
-  return offer.affiliateUrl || offer.productUrl;
+function parsedHttpUrl(value?: string | null): URL | null {
+  const trimmed = value?.trim();
+  if (!trimmed || !/^https?:\/\//i.test(trimmed)) return null;
+  try {
+    return new URL(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function isGoogleHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host === 'googleadservices.com'
+    || host.endsWith('.googleadservices.com')
+    || host === 'shopping.google.com'
+    || host.endsWith('.shopping.google.com')
+    || /^google\.[a-z.]+$/.test(host)
+    || /\.google\.[a-z.]+$/.test(host);
+}
+
+export function isGoogleShoppingUrl(value?: string | null): boolean {
+  const parsed = parsedHttpUrl(value);
+  if (!parsed || !isGoogleHost(parsed.hostname)) return false;
+  return parsed.hostname.includes('googleadservices')
+    || parsed.hostname.includes('shopping.google')
+    || ['/search', '/shopping', '/aclk', '/url'].some((path) => parsed.pathname.startsWith(path))
+    || parsed.searchParams.get('tbm') === 'shop'
+    || parsed.searchParams.get('udm') === '28'
+    || parsed.searchParams.has('ibp');
+}
+
+function isAmazonSearchUrl(value: string): boolean {
+  const parsed = parsedHttpUrl(value);
+  if (!parsed) return false;
+  const hostname = parsed.hostname.replace(/^www\./, '').toLowerCase();
+  const isAmazon = hostname === 'amazon.com' || hostname.endsWith('.amazon.com') || hostname.includes('amazon.');
+  return isAmazon && (parsed.pathname === '/s' || parsed.searchParams.has('k'));
+}
+
+function nestedMerchantUrl(value: string): string | null {
+  const parsed = parsedHttpUrl(value);
+  if (!parsed) return null;
+  for (const key of ['url', 'u', 'q', 'adurl', 'target', 'redirect']) {
+    const nested = parsed.searchParams.get(key);
+    if (nested && /^https?:\/\//i.test(nested) && !isGoogleShoppingUrl(nested) && !isAmazonSearchUrl(nested)) {
+      return nested;
+    }
+  }
+  return null;
+}
+
+export function sanitizeOfferUrl(value?: string | null): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed || !/^https?:\/\//i.test(trimmed)) return null;
+  if (isGoogleShoppingUrl(trimmed)) {
+    return nestedMerchantUrl(trimmed);
+  }
+  if (isAmazonSearchUrl(trimmed)) return null;
+  return trimmed;
+}
+
+function searchQueryFromGoogleUrl(value?: string | null): string | null {
+  const parsed = parsedHttpUrl(value);
+  if (!parsed || !isGoogleShoppingUrl(parsed.toString())) return null;
+  return parsed.searchParams.get('q')?.trim() || null;
+}
+
+function merchantSearchUrl(offer: CommerceOffer, product?: CommerceProduct, googleUrl?: string | null): string | null {
+  const queryText = (
+    searchQueryFromGoogleUrl(googleUrl)
+    ?? offer.title?.trim()
+    ?? product?.name?.trim()
+    ?? merchantName(offer)
+  ).trim();
+  if (!queryText) return offer.merchant?.websiteUrl ?? null;
+
+  const query = encodeURIComponent(queryText);
+  const slug = (offer.merchant?.slug ?? merchantName(offer)).toLowerCase();
+  if (slug.includes('amazon')) return `https://www.amazon.com/s?k=${query}`;
+  if (slug.includes('bestbuy') || slug.includes('best-buy')) return `https://www.bestbuy.com/site/searchpage.jsp?st=${query}`;
+  if (slug.includes('target')) return `https://www.target.com/s?searchTerm=${query}`;
+  if (slug.includes('walmart')) return `https://www.walmart.com/search?q=${query}`;
+  if (slug.includes('ebay')) return `https://www.ebay.com/sch/i.html?_nkw=${query}`;
+  if (slug.includes('newegg')) return `https://www.newegg.com/p/pl?d=${query}`;
+
+  return offer.merchant?.websiteUrl ?? null;
+}
+
+export function resolveOfferDestination(offer: CommerceOffer, product?: CommerceProduct): string | null {
+  const candidates = [offer.affiliateUrl, offer.productUrl];
+  let googleFallback: string | null = null;
+
+  for (const candidate of candidates) {
+    const cleaned = sanitizeOfferUrl(candidate);
+    if (cleaned) return cleaned;
+    if (!googleFallback && candidate && isGoogleShoppingUrl(candidate)) {
+      googleFallback = candidate;
+    }
+  }
+
+  return merchantSearchUrl(offer, product, googleFallback);
+}
+
+export function offerUrl(offer: CommerceOffer, product?: CommerceProduct): string {
+  return resolveOfferDestination(offer, product) ?? offer.merchant?.websiteUrl ?? offer.productUrl ?? offer.affiliateUrl ?? '#';
 }
 
 export function availabilityLabel(value?: CommerceOffer['availability']): string {

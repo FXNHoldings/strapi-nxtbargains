@@ -126,26 +126,8 @@ export default async function HomePage() {
   const guideFeature = posts[0];
   const guideSidebarPosts = pickRandomPosts(posts.slice(1), 6);
 
-  const websiteJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: SITE.name,
-    url: SITE.url,
-    description: SITE.description,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${SITE.url}/search?q={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
-  };
-
   return (
     <div data-testid="home-page">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
-      />
-
       <Hero />
 
       {/* ---------- MARKETPLACE STRIP ---------- */}

@@ -5,6 +5,8 @@ const strapiHost = new URL(
 
 const nextConfig = {
   reactStrictMode: true,
+  compress: true,
+  poweredByHeader: false,
   allowedDevOrigins: ['nxtbargains.fxnstudio.com', 'nxt.bargains'],
   images: {
     remotePatterns: [
@@ -16,6 +18,22 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images-na.ssl-images-amazon.com' },
       { protocol: 'https', hostname: 'm.media-amazon.com' },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/fonts/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
+        source: '/vendor/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
+        source: '/logos/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+    ];
   },
 };
 

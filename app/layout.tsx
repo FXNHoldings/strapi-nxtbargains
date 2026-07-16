@@ -5,6 +5,7 @@ import Footer from '@/components/Footer';
 import ClientErrorReporter from '@/components/ClientErrorReporter';
 import GeniuslinkScripts from '@/components/GeniuslinkScripts';
 import { SITE } from '@/lib/site';
+import { cmsOrigin, siteGraphJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -13,10 +14,10 @@ export const metadata: Metadata = {
     template: `%s · ${SITE.name}`,
   },
   description: SITE.description,
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   openGraph: { type: 'website', siteName: SITE.name, locale: 'en_US' },
-  twitter: { card: 'summary_large_image' },
+  twitter: { card: 'summary_large_image', site: '@nxtbargains' },
   alternates: {
-    canonical: '/',
     types: {
       'application/rss+xml': [{ url: '/feed.xml', title: `${SITE.name} RSS` }],
     },
@@ -24,8 +25,18 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const cms = cmsOrigin();
+
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href={cms} crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href={cms} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteGraphJsonLd()) }}
+        />
+      </head>
       <body className="min-h-screen flex flex-col font-sans font-normal" data-testid="app-shell">
         <Header />
         <main className="flex-1">{children}</main>

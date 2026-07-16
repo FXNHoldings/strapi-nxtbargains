@@ -6,6 +6,7 @@
 // already-affiliated links like goto.walmart.com).
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { resolveOfferDestination } from './commerce';
 import type { CommerceOffer } from './strapi';
 
 type ImpactLink = {
@@ -42,7 +43,7 @@ function domainAllowed(host: string, domains: string[]): boolean {
 // it won't double-wrap already-affiliated links (e.g. goto.walmart.com is not a
 // Walmart deeplink domain).
 export function wrapImpactAffiliate(offer: CommerceOffer): string | null {
-  const dest = offer.affiliateUrl || offer.productUrl;
+  const dest = resolveOfferDestination(offer);
   if (!dest) return null;
   let host: string;
   try {
