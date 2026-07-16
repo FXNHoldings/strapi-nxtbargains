@@ -1,22 +1,13 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { SITE } from '@/lib/site';
+import { FOOTER_ARTICLE_NAV_LINKS, SITE } from '@/lib/site';
 
 const shopLinks = [
-  { href: '/products', label: 'All products' },
-  { href: '/deals', label: "Today's deals" },
-  { href: '/coupons', label: 'Coupons & promo codes' },
-  { href: '/brands', label: 'Brands' },
-  { href: '/search', label: 'Search & compare' },
-  { href: '/product-comparisons', label: 'Comparisons' },
-];
-
-const guideLinks = [
-  { href: '/product-comparisons', label: 'Comparisons' },
-  { href: '/product-reviews', label: 'Product Reviews' },
-  { href: '/product-roundups', label: 'Product Roundups' },
-  { href: '/how-to-guides', label: 'How-to' },
-  { href: '/top-rated-smart-electronics-devices', label: 'Top Rated' },
+  { href: '/products', label: 'All Products' },
+  { href: '/best-deals', label: 'Best Deals' },
+  { href: '/coupons', label: 'Coupons' },
+  { href: '/price-drops', label: 'Price Drops' },
 ];
 
 const aboutLinks = [
@@ -42,14 +33,17 @@ export default function Footer() {
     <footer className="bg-[#232323] pt-[50px] text-sm text-white/70" data-testid="site-footer">
       <div className="mx-auto max-w-7xl px-6">
         {/* top: brand + columns */}
-        <div className="grid gap-8 border-b border-white/[0.13] pb-8 sm:grid-cols-2 lg:grid-cols-[40%_20%_20%_20%] lg:gap-0">
+        <div className="footer-top-grid gap-8 border-b border-white/[0.13] pb-8 sm:grid-cols-2">
           {/* brand */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="mb-4 inline-flex items-center gap-2 font-display text-xl font-extrabold text-white" aria-label={`${SITE.name} home`}>
-              <span className="grid h-6 w-6 place-items-center rounded bg-white/[0.08]">
-                <span className="h-2.5 w-2.5 -rotate-45 rounded-full border-2 border-primary border-t-transparent" />
-              </span>
-              NXT<b className="font-extrabold text-primary">.Bargains</b>
+          <div className="footer-brand-column sm:col-span-2">
+            <Link href="/" className="mb-4 inline-block" aria-label={`${SITE.name} home`}>
+              <Image
+                src="/nxt_bargains_logo.png"
+                alt={SITE.name}
+                width={450}
+                height={218}
+                className="h-10 w-auto"
+              />
             </Link>
             <p className="mb-5 max-w-sm text-sm leading-6 text-white/70">
               Compare one product across the major marketplaces, track its price history,
@@ -77,9 +71,9 @@ export default function Footer() {
             </div>
           </div>
 
-          <FooterColumn title="Shop" links={shopLinks} />
-          <FooterColumn title="Buying guides" links={guideLinks} />
-          <FooterColumn title="About" links={aboutLinks} />
+          <FooterColumn title="About" links={aboutLinks} className="footer-about-column" />
+          <FooterColumn title="Shop" links={shopLinks} className="footer-shop-column" />
+          <FooterColumn title="All Articles" links={FOOTER_ARTICLE_NAV_LINKS} className="footer-articles-column" />
         </div>
 
         {/* comparing prices across */}
@@ -108,10 +102,18 @@ export default function Footer() {
   );
 }
 
-function FooterColumn({ title, links }: { title: string; links: Array<{ href: string; label: string }> }) {
+function FooterColumn({
+  title,
+  links,
+  className,
+}: {
+  title: string;
+  links: Array<{ href: string; label: string }>;
+  className?: string;
+}) {
   return (
-    <div>
-      <h5 className="mb-4 font-display text-xs font-bold uppercase tracking-wide text-primary">{title}</h5>
+    <div className={className}>
+      <h5 className="mb-4 font-display text-[14px] font-semibold uppercase tracking-wide text-white">{title}</h5>
       {links.map((l) => (
         <Link key={l.href + l.label} href={l.href} className="mb-2.5 block text-sm text-white/70 transition hover:pl-1 hover:text-white">
           {l.label}

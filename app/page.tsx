@@ -29,6 +29,15 @@ import { productHref } from '@/lib/product-url';
 
 export const revalidate = 60;
 
+function pickRandomPosts<T>(items: T[], count: number): T[] {
+  const pool = [...items];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count);
+}
+
 const STRIP_MARKETPLACES = [
   { name: 'Amazon', domain: 'amazon.com' },
   { name: 'eBay', domain: 'ebay.com' },
@@ -91,7 +100,7 @@ export default async function HomePage() {
   const [productsRes, dealProducts, posts, stores, couponPageData] = await Promise.all([
     listCommerceProducts({ pageSize: 48 }).catch(() => null),
     listCommerceProductsForDeals(120).catch(() => [] as CommerceProduct[]),
-    listPosts({ pageSize: 7 }).then((r) => r.data).catch(() => [] as NxtPost[]),
+    listPosts({ pageSize: 24 }).then((r) => r.data).catch(() => [] as NxtPost[]),
     listStores().catch(() => [] as Store[]),
     listCouponPageData().catch(() => ({ coupons: [], retailers: [], brandGroups: [] })),
   ]);
@@ -113,6 +122,9 @@ export default async function HomePage() {
 
   // Best Sellers — one daily JSON cache per marketplace (scripts/fetch-*.mjs).
   const bestSellerGroups = listBestSellerGroups({ includeEmpty: true });
+
+  const guideFeature = posts[0];
+  const guideSidebarPosts = pickRandomPosts(posts.slice(1), 6);
 
   const websiteJsonLd = {
     '@context': 'https://schema.org',
@@ -193,7 +205,7 @@ export default async function HomePage() {
       )}
 
       {/* ---------- BUYING GUIDES & REVIEWS (originfacts Car Rentals layout) ---------- */}
-      {posts.length > 0 && (
+      {guideFeature && (
         <section className="py-14 sm:py-[72px]" data-testid="home-guides">
           <div className="mx-auto max-w-[1366px] px-6">
             <SectionHead
@@ -202,7 +214,7 @@ export default async function HomePage() {
               intro="Honest comparisons, reviews, and roundups to help you buy with confidence."
               cta={{ href: '/deals', label: 'All guides' }}
             />
-            <GuidesEditorialSection posts={posts} />
+            <GuidesEditorialSection feature={guideFeature} sidebarPosts={guideSidebarPosts} />
           </div>
         </section>
       )}
@@ -322,23 +334,25 @@ function GuideArticleMeta({ post, compact = false }: { post: NxtPost; compact?: 
   );
 }
 
-function GuidesEditorialSection({ posts }: { posts: NxtPost[] }) {
-  const [feature, ...rest] = posts;
-  const list = rest.slice(0, 6);
-  if (!feature) return null;
-
+function GuidesEditorialSection({
+  feature,
+  sidebarPosts,
+}: {
+  feature: NxtPost;
+  sidebarPosts: NxtPost[];
+}) {
   return (
     <div
       className="guide-editorial-grid mt-10 grid gap-[15px] lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] lg:items-stretch"
       data-testid="home-guides-editorial"
     >
       <GuideFeatureArticle post={feature} />
-      {list.length > 0 ? (
+      {sidebarPosts.length > 0 ? (
         <div
           className="guide-list-panel flex h-full min-h-0 flex-col divide-y divide-ink/12 border-y border-ink/12"
           data-testid="home-guides-list"
         >
-          {list.map((post) => (
+          {sidebarPosts.map((post) => (
             <GuideCompactRow key={post.id} post={post} />
           ))}
         </div>

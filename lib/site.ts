@@ -68,3 +68,36 @@ export const SECTIONS: Section[] = [
     blurb: 'Background reading — trends, primers and the state of the gadget world.',
   },
 ];
+
+export const BLOG_NAV_LINKS = [
+  ...SECTIONS.slice(0, 3).map((section) => ({
+    href: `/${section.slug}`,
+    label: section.title,
+  })),
+  { href: '/buying-guides', label: 'Buying Guides' },
+  ...SECTIONS.slice(3).map((section) => ({
+    href: `/${section.slug}`,
+    label: section.title,
+  })),
+  { href: '/smart-home', label: 'Smart Home' },
+  { href: '/deal-alerts', label: 'Deal Alerts' },
+];
+
+/** Footer “All Articles” column — key links pinned to the top. */
+export const FOOTER_ARTICLE_NAV_LINKS = [
+  { href: '/top-rated-smart-electronics-devices', label: 'Top-Rated Products' },
+  { href: '/deal-alerts', label: 'Deal Alerts' },
+  { href: '/smart-home', label: 'Smart Home' },
+  { href: '/buying-guides', label: 'Buying Guides' },
+  ...BLOG_NAV_LINKS.filter(
+    (link) =>
+      link.href !== '/deal-alerts' &&
+      link.href !== '/smart-home' &&
+      link.href !== '/buying-guides' &&
+      link.href !== '/top-rated-smart-electronics-devices' &&
+      link.href !== '/product-reviews',
+  ).map((link) =>
+    link.href === '/nxt-bargains-informative-articles' ? { ...link, label: 'Informative' } : link,
+  ),
+  { href: '/product-reviews', label: 'Product Reviews' },
+];

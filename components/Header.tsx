@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { SECTIONS, SITE } from '@/lib/site';
+import { BLOG_NAV_LINKS, SITE } from '@/lib/site';
 import MobileNav from './MobileNav';
 import StickyHeaderShadow from './StickyHeaderShadow';
 
@@ -15,6 +15,8 @@ const NAV = [
       { href: '/category/laptops', label: 'Laptops' },
       { href: '/category/smart-light-bulbs', label: 'Smart Light Bulbs' },
       { href: '/category/smart-tvs', label: 'Smart TVs' },
+      { href: '/category/smart-cameras', label: 'Smart Cameras' },
+      { href: '/category/smart-speakers', label: 'Smart Speakers' },
       { href: '/category/headphones', label: 'Headphones' },
       { href: '/category/raspberry-pi', label: 'Raspberry PI' },
     ],
@@ -32,13 +34,7 @@ const NAV = [
   {
     href: '/deals',
     label: 'Blog',
-    children: [
-      ...SECTIONS.map((section) => ({
-        href: `/${section.slug}`,
-        label: section.title,
-      })),
-      { href: '/deals', label: 'Deals' },
-    ],
+    children: BLOG_NAV_LINKS,
   },
 ];
 

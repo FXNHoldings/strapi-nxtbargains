@@ -36,6 +36,7 @@ import { SITE } from '@/lib/site';
 import PriceAlertForm from '@/components/PriceAlertForm';
 import ReviewForm from '@/components/ReviewForm';
 import CommerceProductCard from '@/components/CommerceProductCard';
+import ProductCarousel from '@/components/ProductCarousel';
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -128,7 +129,7 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
   const headerList = await headers();
   const isCategoryRoute = headerList.get('x-product-category-route') === '1';
   if (categorySlug && !isCategoryRoute) {
-    redirect(`/category/${categorySlug}/${slug}`);
+    redirect(`/${categorySlug}/${slug}`);
   }
 
   const productCategorySlugs = new Set(product.categories?.map((item) => item.slug).filter(Boolean) ?? []);
@@ -399,13 +400,16 @@ export default async function ProductPricePage({ params }: { params: Promise<Par
       )}
 
       {related.length > 0 && (
-        <section className="border-t border-ink/10 bg-paper py-12" data-testid="related-products">
+        <section className="border-t border-ink/10 bg-white py-12" data-testid="related-products">
           <div className="mx-auto max-w-[1366px] px-4 sm:px-6">
             <h2 className="font-display text-2xl font-bold text-ink">Related products</h2>
-            <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
-              {related.slice(0, 5).map((p) => (
-                <CommerceProductCard key={p.id} product={p} showCompareButton={false} />
-              ))}
+            <div className="mt-6">
+              <ProductCarousel
+                perView={6}
+                items={related.slice(0, 10).map((p) => (
+                  <CommerceProductCard key={p.id} product={p} showCompareButton={false} />
+                ))}
+              />
             </div>
           </div>
         </section>

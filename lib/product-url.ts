@@ -1,5 +1,22 @@
 import type { CommerceProduct } from '@/lib/strapi';
 
+export const COMMERCE_PRODUCT_CATEGORY_SLUGS = [
+  'smart-phones',
+  'smartwatches',
+  'tablets',
+  'laptops',
+  'smart-light-bulbs',
+  'smart-tvs',
+  'smart-cameras',
+  'smart-speakers',
+  'headphones',
+  'raspberry-pi',
+] as const;
+
+export function isCommerceProductCategorySlug(slug: string): boolean {
+  return (COMMERCE_PRODUCT_CATEGORY_SLUGS as readonly string[]).includes(slug);
+}
+
 export function primaryCategorySlug(
   product: Pick<CommerceProduct, 'categories' | 'category'>,
 ): string | null {
@@ -19,7 +36,7 @@ export function productCanonicalPath(
   product: Pick<CommerceProduct, 'slug' | 'categories' | 'category'>,
 ): string {
   const categorySlug = primaryCategorySlug(product);
-  if (categorySlug) return `/category/${categorySlug}/${product.slug}`;
+  if (categorySlug) return `/${categorySlug}/${product.slug}`;
   return `/products/${product.slug}`;
 }
 

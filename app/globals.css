@@ -243,7 +243,44 @@ h3.product-card-title { font-size: 15px !important; font-weight: 600 !important;
 }
 
 [data-testid="related-products"] h3.product-card-title {
-  font-size: 15px !important;
+  font-size: 14px !important;
+}
+
+[data-testid="site-footer"] h5 {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+}
+
+[data-testid="site-footer"] .footer-top-grid {
+  display: grid;
+}
+
+@media (min-width: 1024px) {
+  [data-testid="site-footer"] .footer-top-grid {
+    grid-template-columns: 40% 10% 10% 10% 10% 10% 10%;
+    gap: 0;
+  }
+
+  [data-testid="site-footer"] .footer-brand-column {
+    grid-column: auto;
+    width: 100%;
+  }
+
+  [data-testid="site-footer"] .footer-about-column {
+    grid-column: 3;
+    width: 100%;
+  }
+
+  [data-testid="site-footer"] .footer-articles-column {
+    grid-column: 7;
+    width: 100%;
+  }
+
+  [data-testid="site-footer"] .footer-shop-column {
+    grid-column: 5;
+    width: 100%;
+  }
 }
 
 .product-info-tabs,
@@ -497,7 +534,7 @@ article[data-testid^="commerce-product-"] .commerce-product-image {
 }
 
 [data-testid="home-guides"] .guide-compact-title {
-  font-size: 18px !important;
+  font-size: 1rem !important;
   font-weight: 700 !important;
   line-height: 1.35 !important;
 }

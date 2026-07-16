@@ -3,17 +3,18 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * Auto-sliding, single-row product carousel. Shows 5 cards per row on desktop
- * (3 on tablet, 2 on mobile) and auto-advances on an interval, looping. Pauses
- * on hover; subtle prev/next arrows appear on hover. Cards are rendered on the
- * server and passed in as `items`.
+ * Auto-sliding, single-row product carousel. Shows `perView` cards per row on
+ * desktop (3 on tablet, 2 on mobile) and auto-advances on an interval,
+ * looping. Pauses on hover; subtle prev/next arrows appear on hover.
  */
 export default function ProductCarousel({
   items,
   interval = 3500,
+  perView = 5,
 }: {
   items: React.ReactNode[];
   interval?: number;
+  perView?: number;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
@@ -39,6 +40,11 @@ export default function ProductCarousel({
 
   if (!items.length) return null;
 
+  const desktopBasis =
+    perView === 6
+      ? 'lg:basis-[calc((100%_-_6.25rem)/6)]'
+      : 'lg:basis-[calc((100%_-_5rem)/5)]';
+
   return (
     <div
       className="group relative"
@@ -53,7 +59,7 @@ export default function ProductCarousel({
           <div
             key={i}
             data-slide
-            className="shrink-0 snap-start basis-[calc((100%_-_1.25rem)/2)] sm:basis-[calc((100%_-_2.5rem)/3)] lg:basis-[calc((100%_-_5rem)/5)]"
+            className={`shrink-0 snap-start basis-[calc((100%_-_1.25rem)/2)] sm:basis-[calc((100%_-_2.5rem)/3)] ${desktopBasis}`}
           >
             {item}
           </div>
