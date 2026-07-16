@@ -12,7 +12,7 @@ import {
 } from '@/lib/article-filters';
 import { getEditorialCategoryConfig } from '@/lib/editorial-category-config';
 import { getCategory, listPosts } from '@/lib/strapi';
-import { SECTIONS, SITE } from '@/lib/site';
+import { ARTICLE_SIDEBAR_CATEGORIES, resolveArticleCategoryBlurb, SECTIONS, SITE } from '@/lib/site';
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -29,9 +29,8 @@ function isReserved(slug: string) {
   return RESERVED.has(slug);
 }
 
-async function resolveCategoryName(slug: string): Promise<string> {
-  const fromCms = await getCategory(slug).catch(() => null);
-  if (fromCms?.name) return fromCms.name;
+async function resolveCategoryName(slug: string, cmsName?: string | null): Promise<string> {
+  if (cmsName?.trim()) return cmsName.trim();
   const fromConfig = SECTIONS.find((s) => s.slug === slug);
   return fromConfig?.title ?? slug.replace(/-/g, ' ');
 }
@@ -39,10 +38,11 @@ async function resolveCategoryName(slug: string): Promise<string> {
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { category } = await params;
   if (isReserved(category)) return {};
-  const name = await resolveCategoryName(category);
+  const cmsCategory = await getCategory(category).catch(() => null);
+  const name = await resolveCategoryName(category, cmsCategory?.name);
   return {
     title: name,
-    description: `${name} from ${SITE.name} — ${SITE.tagline}`,
+    description: resolveArticleCategoryBlurb(category, cmsCategory?.description) ?? `${name} from ${SITE.name} — ${SITE.tagline}`,
     alternates: { canonical: `/${category}` },
   };
 }
@@ -63,8 +63,8 @@ export default async function CategoryPage({
   const postType = isValidPostType(filters.postType) ? filters.postType : undefined;
   const activeFilterCount = activeArticleFiltersCount(filters);
 
-  const [name, res] = await Promise.all([
-    resolveCategoryName(category),
+  const [cmsCategory, res] = await Promise.all([
+    getCategory(category).catch(() => null),
     listPosts({
       category,
       page,
@@ -74,6 +74,9 @@ export default async function CategoryPage({
     }).catch(() => null),
   ]);
 
+  const name = await resolveCategoryName(category, cmsCategory?.name);
+  const categoryBlurb = resolveArticleCategoryBlurb(category, cmsCategory?.description);
+
   const posts = res?.data ?? [];
   const total = res?.meta?.pagination?.total ?? posts.length;
   const pageCount = res?.meta?.pagination?.pageCount ?? 1;
@@ -82,6 +85,7 @@ export default async function CategoryPage({
 
   const sectionMeta = SECTIONS.find((s) => s.slug === category);
   const editorialConfig = getEditorialCategoryConfig(category);
+  const heroBlurb = categoryBlurb ?? sectionMeta?.blurb;
 
   if (editorialConfig) {
     return (
@@ -95,7 +99,7 @@ export default async function CategoryPage({
         activeFilterCount={activeFilterCount}
         categorySlug={category}
         categoryName={name}
-        categoryBlurb={sectionMeta?.blurb}
+        categoryBlurb={categoryBlurb ?? heroBlurb}
       />
     );
   }
@@ -108,9 +112,9 @@ export default async function CategoryPage({
           <h1 className="mt-3 max-w-4xl font-display text-4xl font-bold tracking-tight text-ink sm:text-5xl">
             {name}
           </h1>
-          {sectionMeta && (
-            <p className="mt-4 max-w-2xl text-base leading-8 text-ink/65 sm:text-lg">{sectionMeta.blurb}</p>
-          )}
+          {heroBlurb ? (
+            <p className="mt-4 max-w-2xl text-base leading-8 text-ink/65 sm:text-lg">{heroBlurb}</p>
+          ) : null}
         </div>
       </section>
 
@@ -121,7 +125,7 @@ export default async function CategoryPage({
               action={`/${category}`}
               clearHref={`/${category}`}
               filters={filters}
-              categories={SECTIONS}
+              categories={ARTICLE_SIDEBAR_CATEGORIES}
               currentCategory={category}
               totalItems={total}
               activeFilterCount={activeFilterCount}

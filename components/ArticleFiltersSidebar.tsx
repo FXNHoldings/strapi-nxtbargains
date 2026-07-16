@@ -4,13 +4,13 @@ import {
   articlePageQuery,
   type ArticleFilters,
 } from '@/lib/article-filters';
-import type { Section } from '@/lib/site';
+import type { ArticleCategoryNavItem } from '@/lib/site';
 
 type Props = {
   action: string;
   clearHref: string;
   filters: ArticleFilters;
-  categories: Section[];
+  categories: ArticleCategoryNavItem[];
   currentCategory: string;
   totalItems: number;
   activeFilterCount: number;
@@ -96,7 +96,7 @@ export default function ArticleFiltersSidebar({
 
       <div className="mt-6 border-t border-ink/10 pt-5">
         <p className="text-sm font-bold text-ink">Categories</p>
-        <nav aria-label="Article categories" className="mt-2 max-h-72 overflow-y-auto border border-ink/10 bg-white">
+        <nav aria-label="Article categories" className="mt-2 border border-ink/10 bg-white">
           {categories.map((section) => {
             const href = `/${section.slug}${articlePageQuery(filters)}`;
             const active = currentCategory === section.slug;

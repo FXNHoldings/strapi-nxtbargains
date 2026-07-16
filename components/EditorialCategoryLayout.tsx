@@ -4,7 +4,7 @@ import { articlePageQuery, type ArticleFilters } from '@/lib/article-filters';
 import type { EditorialCategoryConfig } from '@/lib/editorial-category-config';
 import { fmtDate, firstImageUrl, postPath } from '@/lib/format';
 import { mediaUrl, type NxtPost } from '@/lib/strapi';
-import { SECTIONS, SITE } from '@/lib/site';
+import { ARTICLE_SIDEBAR_CATEGORIES, SITE } from '@/lib/site';
 
 type Props = {
   config: EditorialCategoryConfig;
@@ -105,6 +105,30 @@ export default function EditorialCategoryLayout({
                   {config.secondaryCta.label}
                 </Link>
               </div>
+
+              {(() => {
+                const quickLinks = config.quickLinks ?? config.marketplaceLinks;
+                if (!quickLinks?.length) return null;
+                const quickLinksLabel = config.quickLinksLabel ?? 'Shop by marketplace';
+                return (
+                <div className="mt-8 border-t border-white/10 pt-6">
+                  <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-white/45">
+                    {quickLinksLabel}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {quickLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="inline-flex min-h-9 items-center border border-white/15 bg-white/8 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-white/85 transition hover:border-white/35 hover:bg-white/12 hover:text-white"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+                );
+              })()}
             </div>
 
             <aside className="border border-white/12 bg-white/5 p-5 backdrop-blur-sm">
@@ -147,7 +171,7 @@ export default function EditorialCategoryLayout({
               action={action}
               clearHref={action}
               filters={filters}
-              categories={SECTIONS}
+              categories={ARTICLE_SIDEBAR_CATEGORIES}
               currentCategory={categorySlug}
               totalItems={total}
               activeFilterCount={activeFilterCount}

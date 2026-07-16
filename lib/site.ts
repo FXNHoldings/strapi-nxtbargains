@@ -80,18 +80,48 @@ export const BLOG_NAV_LINKS = [
     label: section.title,
   })),
   { href: '/smart-home', label: 'Smart Home' },
-  { href: '/deal-alerts', label: 'Deal Alerts' },
+  { href: '/best-sellers-articles', label: 'Best Sellers' },
 ];
+
+export type ArticleCategoryNavItem = {
+  slug: string;
+  title: string;
+};
+
+/** All article categories for category-page sidebars and filters. */
+export const ARTICLE_SIDEBAR_CATEGORIES: ArticleCategoryNavItem[] = BLOG_NAV_LINKS.map((link) => ({
+  slug: link.href.replace(/^\//, ''),
+  title: link.href === '/nxt-bargains-informative-articles' ? 'Informative' : link.label,
+}));
+
+/** Hero descriptions for article categories outside SECTIONS. */
+export const ARTICLE_CATEGORY_BLURBS: Record<string, string> = {
+  'best-sellers-articles':
+    'Follow what shoppers are buying most across Amazon, eBay, Newegg, Walmart, Target, and Best Buy. Our Best Sellers articles spotlight top-ranked products from each marketplace, explain why they are trending, and help you compare live prices before you buy.',
+  'buying-guides':
+    'Make confident purchase decisions with NXT.Bargains buying guides — budget tiers, spec checklists, and practical advice for phones, laptops, audio, tablets, smart home gear, and more before you compare live prices.',
+};
+
+export function resolveArticleCategoryBlurb(
+  slug: string,
+  cmsDescription?: string | null,
+): string | undefined {
+  if (ARTICLE_CATEGORY_BLURBS[slug]) return ARTICLE_CATEGORY_BLURBS[slug];
+  const section = SECTIONS.find((s) => s.slug === slug);
+  if (section?.blurb) return section.blurb;
+  const trimmed = cmsDescription?.trim();
+  return trimmed || undefined;
+}
 
 /** Footer “All Articles” column — key links pinned to the top. */
 export const FOOTER_ARTICLE_NAV_LINKS = [
   { href: '/top-rated-smart-electronics-devices', label: 'Top-Rated Products' },
-  { href: '/deal-alerts', label: 'Deal Alerts' },
+  { href: '/best-sellers-articles', label: 'Best Sellers' },
   { href: '/smart-home', label: 'Smart Home' },
   { href: '/buying-guides', label: 'Buying Guides' },
   ...BLOG_NAV_LINKS.filter(
     (link) =>
-      link.href !== '/deal-alerts' &&
+      link.href !== '/best-sellers-articles' &&
       link.href !== '/smart-home' &&
       link.href !== '/buying-guides' &&
       link.href !== '/top-rated-smart-electronics-devices' &&

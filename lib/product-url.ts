@@ -9,6 +9,9 @@ export const COMMERCE_PRODUCT_CATEGORY_SLUGS = [
   'smart-tvs',
   'smart-cameras',
   'smart-speakers',
+  'smart-door-locks',
+  'smart-plugs',
+  'video-doorbells',
   'headphones',
   'raspberry-pi',
 ] as const;

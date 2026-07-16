@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { SITE } from '@/lib/site';
-
-type NavItem = { href: string; label: string; children?: { href: string; label: string }[] };
+import type { NavItem } from './Header';
 
 export default function MobileNav({ items }: { items: NavItem[] }) {
   const [open, setOpen] = useState(false);
@@ -167,14 +166,35 @@ export default function MobileNav({ items }: { items: NavItem[] }) {
                     {item.children && (
                       <ul className="pb-3 pl-4">
                         {item.children.map((child) => (
-                          <li key={child.href}>
-                            <Link
-                              href={child.href}
-                              onClick={() => setOpen(false)}
-                              className="block py-2 font-['Outfit'] text-sm font-semibold text-ink/65 transition hover:text-primary"
-                            >
-                              {child.label}
-                            </Link>
+                          <li key={child.href || child.label}>
+                            {child.children?.length ? (
+                              <>
+                                <p className="py-2 font-['Outfit'] text-xs font-bold uppercase tracking-[0.14em] text-ink/45">
+                                  {child.label}
+                                </p>
+                                <ul className="pb-2 pl-3">
+                                  {child.children.map((nested) => (
+                                    <li key={nested.href}>
+                                      <Link
+                                        href={nested.href}
+                                        onClick={() => setOpen(false)}
+                                        className="block py-2 font-['Outfit'] text-sm font-semibold text-ink/65 transition hover:text-primary"
+                                      >
+                                        {nested.label}
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </>
+                            ) : (
+                              <Link
+                                href={child.href!}
+                                onClick={() => setOpen(false)}
+                                className="block py-2 font-['Outfit'] text-sm font-semibold text-ink/65 transition hover:text-primary"
+                              >
+                                {child.label}
+                              </Link>
+                            )}
                           </li>
                         ))}
                       </ul>

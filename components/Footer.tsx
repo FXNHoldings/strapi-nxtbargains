@@ -8,6 +8,11 @@ const shopLinks = [
   { href: '/best-deals', label: 'Best Deals' },
   { href: '/coupons', label: 'Coupons' },
   { href: '/price-drops', label: 'Price Drops' },
+  { href: '/category/smart-phones', label: 'Smart Phones' },
+  { href: '/category/smartwatches', label: 'Smartwatches' },
+  { href: '/category/headphones', label: 'Headphones' },
+  { href: '/category/laptops', label: 'Laptops' },
+  { href: '/category/tablets', label: 'Tablets' },
 ];
 
 const aboutLinks = [

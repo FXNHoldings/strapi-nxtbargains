@@ -1,7 +1,8 @@
 import type { SectionKey } from '@/lib/site';
+import { BEST_SELLER_MARKETPLACES } from '@/lib/best-sellers';
 
 export type EditorialCategoryConfig = {
-  slug: SectionKey;
+  slug: string;
   breadcrumbLabel: string;
   eyebrow: string;
   heroGradient: string;
@@ -21,6 +22,11 @@ export type EditorialCategoryConfig = {
   emptySearchMessage: string;
   emptyDefaultMessage: string;
   hidePostType?: boolean;
+  /** Optional hero pill links (e.g. marketplaces or product categories). */
+  quickLinks?: Array<{ href: string; label: string }>;
+  quickLinksLabel?: string;
+  /** @deprecated Use quickLinks */
+  marketplaceLinks?: Array<{ href: string; label: string }>;
 };
 
 const EDITORIAL_CATEGORY_CONFIG: Record<SectionKey, EditorialCategoryConfig> = {
@@ -194,10 +200,83 @@ const EDITORIAL_CATEGORY_CONFIG: Record<SectionKey, EditorialCategoryConfig> = {
   },
 };
 
+const EXTENDED_EDITORIAL_CATEGORY_CONFIG: Record<string, EditorialCategoryConfig> = {
+  'best-sellers-articles': {
+    slug: 'best-sellers-articles',
+    breadcrumbLabel: 'Best Sellers',
+    eyebrow: 'Editorial · Marketplace picks',
+    heroGradient:
+      'radial-gradient(at 82% 16%, rgba(251,191,36,0.32) 0%, transparent 52%), radial-gradient(at 10% 88%, rgba(71,120,230,0.18) 0%, transparent 48%)',
+    accentColor: '#fbbf24',
+    bullets: [
+      'Coverage tied to live best-seller lists from Amazon, eBay, Newegg, Walmart, Target, and Best Buy.',
+      'Quick reads on why a product is ranking, who it suits, and what to check before you buy.',
+      'Every article links back to compare prices so you can shop the trend without overpaying.',
+    ],
+    primaryCta: { href: '/best-sellers', label: 'Live best-seller lists' },
+    secondaryCta: { href: '/best-deals', label: 'Best deals today' },
+    glanceDescription:
+      'Shopping guides built around the products shoppers are buying most on major US marketplaces — updated as rankings shift.',
+    focusLabel: 'Trending',
+    topicChips: ['Amazon', 'eBay', 'Walmart', 'Target', 'Best Buy', 'Newegg'],
+    quickLinks: BEST_SELLER_MARKETPLACES.map((marketplace) => ({
+      href: `/best-sellers/${marketplace.key}`,
+      label: marketplace.label,
+    })),
+    quickLinksLabel: 'Shop by marketplace',
+    featuredLabel: 'Featured pick',
+    spotlightEyebrow: 'Latest reads',
+    spotlightTitle: 'Fresh takes on trending best sellers',
+    gridArchiveTitle: 'Browse every best-sellers article',
+    cardLabel: 'Best Seller',
+    searchPlaceholder: 'Search best-sellers articles...',
+    emptySearchMessage: 'No best-sellers articles match your search.',
+    emptyDefaultMessage: 'No best-sellers articles here yet.',
+    hidePostType: true,
+  },
+  'buying-guides': {
+    slug: 'buying-guides',
+    breadcrumbLabel: 'Buying guides',
+    eyebrow: 'Editorial · Buy smarter',
+    heroGradient:
+      'radial-gradient(at 84% 14%, rgba(45,212,191,0.3) 0%, transparent 52%), radial-gradient(at 8% 88%, rgba(71,120,230,0.2) 0%, transparent 48%)',
+    accentColor: '#5eead4',
+    bullets: [
+      'What to look for, what to skip, and how to match a product to how you actually shop and use it.',
+      'Budget tiers, must-have features, and trade-offs worth understanding before checkout.',
+      'Built to shorten the research phase — then compare live prices across major stores.',
+    ],
+    primaryCta: { href: '/product-comparisons', label: 'Compare products' },
+    secondaryCta: { href: '/top-rated-smart-electronics-devices', label: 'Top-rated picks' },
+    glanceDescription:
+      'Practical buying guides from NXT.Bargains — budget advice, spec checklists, and decision frameworks for phones, laptops, audio, smart home, and more.',
+    focusLabel: 'Buy smarter',
+    topicChips: ['Budget tiers', 'Key specs', 'Use cases', 'Trade-offs', 'Checklists'],
+    quickLinks: [
+      { href: '/category/smart-phones', label: 'Smart phones' },
+      { href: '/category/laptops', label: 'Laptops' },
+      { href: '/category/tablets', label: 'Tablets' },
+      { href: '/category/headphones', label: 'Headphones' },
+      { href: '/category/smartwatches', label: 'Smartwatches' },
+      { href: '/smart-home', label: 'Smart home' },
+    ],
+    quickLinksLabel: 'Shop popular categories',
+    featuredLabel: 'Featured guide',
+    spotlightEyebrow: 'Latest guides',
+    spotlightTitle: 'Fresh buying advice from the desk',
+    gridArchiveTitle: 'Browse every buying guide',
+    cardLabel: 'Buying guide',
+    searchPlaceholder: 'Search buying guides...',
+    emptySearchMessage: 'No buying guides match your search.',
+    emptyDefaultMessage: 'No buying guides here yet.',
+    hidePostType: true,
+  },
+};
+
 export function getEditorialCategoryConfig(slug: string): EditorialCategoryConfig | null {
-  return EDITORIAL_CATEGORY_CONFIG[slug as SectionKey] ?? null;
+  return EXTENDED_EDITORIAL_CATEGORY_CONFIG[slug] ?? EDITORIAL_CATEGORY_CONFIG[slug as SectionKey] ?? null;
 }
 
 export function isEditorialCategory(slug: string): slug is SectionKey {
-  return slug in EDITORIAL_CATEGORY_CONFIG;
+  return slug in EDITORIAL_CATEGORY_CONFIG || slug in EXTENDED_EDITORIAL_CATEGORY_CONFIG;
 }
