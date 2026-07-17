@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import CookieSettingsButton from '@/components/CookieSettingsButton';
 import { FOOTER_ARTICLE_NAV_LINKS, SITE } from '@/lib/site';
 
 const shopLinks = [
@@ -100,6 +101,7 @@ export default function Footer() {
             {legalLinks.map((l) => (
               <Link key={l.href} href={l.href} className="transition hover:text-white">{l.label}</Link>
             ))}
+            <CookieSettingsButton className="transition hover:text-white" />
           </div>
         </div>
       </div>

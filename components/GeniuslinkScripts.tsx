@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import Script from 'next/script';
 import { usePathname } from 'next/navigation';
+import { useCookieConsent } from '@/components/CookieConsentProvider';
+import { hasConsent } from '@/lib/cookie-consent';
 
 const GENIUSLINK_TSID = 426428;
 const GENIUSLINK_DOMAIN = 'https://buy.geni.us';
@@ -28,15 +30,17 @@ function convertAmazonLinks() {
 
 export default function GeniuslinkScripts() {
   const pathname = usePathname();
+  const { consent, ready } = useCookieConsent();
   const disabled = pathname?.startsWith('/products/');
+  const affiliateAllowed = ready && hasConsent('affiliate', consent);
 
   useEffect(() => {
-    if (disabled) return undefined;
+    if (disabled || !affiliateAllowed) return undefined;
     const timer = window.setTimeout(convertAmazonLinks, 250);
     return () => window.clearTimeout(timer);
-  }, [disabled, pathname]);
+  }, [affiliateAllowed, disabled, pathname]);
 
-  if (disabled) return null;
+  if (disabled || !affiliateAllowed) return null;
 
   return (
     <Script

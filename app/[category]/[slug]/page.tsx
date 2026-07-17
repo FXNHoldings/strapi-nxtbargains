@@ -6,6 +6,7 @@ import path from 'node:path';
 import { getPost, listPostComments, listPosts, mediaUrl, type NxtPost } from '@/lib/strapi';
 import { SECTIONS, SITE } from '@/lib/site';
 import { breadcrumbJsonLd } from '@/lib/seo';
+import { enrichPostCarouselHtml } from '@/lib/enrich-post-carousel';
 import { firstImageUrl, fmtDate, primaryCategorySlug, postPath } from '@/lib/format';
 import PostContent from '@/components/PostContent';
 import PostPriceComparison from '@/components/PostPriceComparison';
@@ -165,6 +166,8 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
     { name: post.title, url: `${SITE.url}/${category}/${post.slug}` },
   ]);
 
+  const postContent = await enrichPostCarouselHtml(post.content);
+
   return (
     <article
       className="bg-white"
@@ -185,41 +188,30 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
 
-      <div className="mx-auto max-w-7xl px-6">
-        <nav
-          className="mt-10 flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-ink/45"
-          data-testid="breadcrumb"
-          aria-label="Breadcrumb"
-        >
-          <Link href="/" className="shrink-0 hover:text-primary">Home</Link>
-          <span className="shrink-0">/</span>
-          <Link href={`/${category}`} className="shrink-0 hover:text-primary">
-            {cat?.name ?? categoryName(category)}
-          </Link>
-        </nav>
-
-        <header className="mt-8">
-          {cat && (
-            <Link
-              href={`/${category}`}
-              className="text-xs font-bold uppercase tracking-[0.2em] text-primary"
-            >
-              {cat.name}
+      <section className="article-breadcrumb-section bg-[#f8f8f8] py-4">
+        <div className="mx-auto max-w-7xl px-6">
+          <nav
+            className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.16em] text-ink/45"
+            data-testid="breadcrumb"
+            aria-label="Breadcrumb"
+          >
+            <Link href="/" className="shrink-0 hover:text-primary">Home</Link>
+            <span className="shrink-0">/</span>
+            <Link href={`/${category}`} className="shrink-0 hover:text-primary">
+              {cat?.name ?? categoryName(category)}
             </Link>
-          )}
-          <h1 className="mt-5 font-display !text-[2rem] font-bold leading-[1.05] tracking-tight text-ink">
-            {post.title}
-          </h1>
-          {post.excerpt && (
-            <p className="mt-6 text-lg leading-8 text-ink/55">
-              {post.excerpt}
-            </p>
-          )}
-        </header>
+            <span className="shrink-0">/</span>
+            <span className="line-clamp-1 text-ink/70">{post.title}</span>
+          </nav>
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-7xl px-6">
+        <h1 className="sr-only">{post.title}</h1>
 
         <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
           <div className="w-full" data-testid="post-body">
-            <PostContent html={post.content} />
+            <PostContent html={postContent} />
             <PostPriceComparison post={post} />
 
             <div className="mt-14 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-ink/10 pt-8 text-xs font-semibold uppercase tracking-[0.12em] text-ink/45">

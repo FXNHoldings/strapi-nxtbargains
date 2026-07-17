@@ -3,6 +3,7 @@ import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ClientErrorReporter from '@/components/ClientErrorReporter';
+import { CookieConsentProvider } from '@/components/CookieConsentProvider';
 import GeniuslinkScripts from '@/components/GeniuslinkScripts';
 import { SITE } from '@/lib/site';
 import { cmsOrigin, siteGraphJsonLd } from '@/lib/seo';
@@ -38,11 +39,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen flex flex-col font-sans font-normal" data-testid="app-shell">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <ClientErrorReporter />
-        <GeniuslinkScripts />
+        <CookieConsentProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <ClientErrorReporter />
+          <GeniuslinkScripts />
+        </CookieConsentProvider>
       </body>
     </html>
   );
