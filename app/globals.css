@@ -320,22 +320,22 @@ main[data-testid^="product-price-"] h2 {
 
 @media (min-width: 1024px) {
   [data-testid="site-footer"] .footer-top-grid {
-    grid-template-columns: 40% 10% 10% 10% 10% 10% 10%;
+    grid-template-columns: 55% 15% 15% 5% 10%;
     gap: 0;
   }
 
   [data-testid="site-footer"] .footer-brand-column {
-    grid-column: auto;
+    grid-column: 1;
     width: 100%;
   }
 
   [data-testid="site-footer"] .footer-about-column {
-    grid-column: 3;
+    grid-column: 2;
     width: 100%;
   }
 
   [data-testid="site-footer"] .footer-articles-column {
-    grid-column: 7;
+    grid-column: 3;
     width: 100%;
   }
 

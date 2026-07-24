@@ -99,7 +99,7 @@ export default async function PriceDropsPage() {
       />
 
       {dropCount > 0 ? (
-        <section className="bg-[#f7f7f7] py-10 sm:py-12" data-testid="featured-drops">
+        <section className="border-b border-ink/10 bg-[#f7fafc] py-10 sm:py-12" data-testid="featured-drops">
           <div className="mx-auto max-w-[1366px] px-6">
             <SectionHead
               eyebrow="Largest movement"
@@ -149,7 +149,7 @@ export default async function PriceDropsPage() {
         </div>
       </section>
 
-      <section className="bg-[#f7f7f7] py-10">
+      <section className="border-t border-ink/10 bg-[#f7fafc] py-10">
         <div className="mx-auto max-w-[1366px] px-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <BrowseCard href="/best-deals" title="Best deals" subtitle="Highest current merchant discounts" />
@@ -183,60 +183,90 @@ function Hero({
   totalSavings: string | null;
 }) {
   return (
-    <section className="bg-[#f7f7f7]">
-      <div className="mx-auto max-w-[1366px] px-6 py-10 sm:py-14">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end">
-          <div>
-            <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-ink/45">
-              <Link href="/" className="transition hover:text-primary">Home</Link>
-              <span aria-hidden>/</span>
-              <span className="text-primary">Price drops</span>
-            </nav>
+    <section className="relative overflow-hidden border-b border-ink/10 bg-[#0c1222] text-white">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-80"
+        style={{
+          background:
+            'radial-gradient(at 80% 20%, rgba(21,86,238,0.22) 0%, transparent 50%), radial-gradient(at 15% 85%, rgba(16,185,129,0.12) 0%, transparent 50%)',
+        }}
+      />
+      <div className="relative mx-auto max-w-[1366px] px-4 py-10 sm:px-6 sm:py-14">
+        <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/45">
+          <Link href="/" className="transition hover:text-white">Home</Link>
+          <span aria-hidden>/</span>
+          <span className="text-[#67b7ff]">Price drops</span>
+        </nav>
 
-            <p className="mt-10 text-xs font-bold uppercase tracking-[0.16em] text-primary">Tracked price history</p>
-            <h1 className="mt-3 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-ink sm:text-4xl lg:text-[2.75rem]">
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-start">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#67b7ff]">Tracked price history</p>
+            <h1 className="mt-3 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-[2.75rem]">
               Price drops worth checking before they move again
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-ink/65 sm:text-lg">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
               Ranked from saved price-history snapshots, with current offers pulled into
               each product card so you can compare the drop and the live marketplace price.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-3">
+            <ul className="mt-6 max-w-2xl space-y-3 text-sm leading-6 text-white/75 sm:text-base">
+              <li className="flex gap-3">
+                <span className="mt-0.5 shrink-0 text-[#67b7ff]" aria-hidden>✓</span>
+                <span>Latest tracked price compared against its highest earlier snapshot.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-0.5 shrink-0 text-[#67b7ff]" aria-hidden>✓</span>
+                <span>Every card links to live merchant offers so you can compare before buying.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-0.5 shrink-0 text-[#67b7ff]" aria-hidden>✓</span>
+                <span>Sorted by drop size — the sharpest recent moves surface first.</span>
+              </li>
+            </ul>
+
+            <div className="mt-10 flex flex-wrap gap-3">
               <a href="#all-drops" className="inline-flex bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis">
                 View all drops
               </a>
-              <Link href="/best-deals" className="inline-flex border border-ink/15 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-ink transition hover:border-primary hover:text-primary">
+              <Link href="/best-deals" className="inline-flex border border-white/20 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white/80 transition hover:border-white/40 hover:text-white">
                 Best deals
               </Link>
-              <Link href="/coupons" className="inline-flex border border-ink/15 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-ink transition hover:border-primary hover:text-primary">
+              <Link href="/coupons" className="inline-flex border border-white/20 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white/80 transition hover:border-white/40 hover:text-white">
                 Coupons
               </Link>
             </div>
           </div>
 
-          <div className="grid gap-3 bg-white p-4 shadow-[0_18px_50px_-38px_rgba(3,3,3,0.45)] sm:grid-cols-2">
-            <Stat label="Price drops" value={String(dropCount)} />
-            <Stat label="Biggest drop" value={dropCount > 0 ? `${topDrop}%` : '-'} />
-            <Stat label="Avg. drop" value={dropCount > 0 ? `${avgDrop}%` : '-'} />
-            <Stat label="Products tracked" value={String(productsTracked)} />
-            <Stat label="Snapshots" value={String(snapshotsCount)} compact />
-            <Stat label="Last updated" value={updatedLabel} compact />
-            {totalSavings ? <Stat label="Total savings" value={totalSavings} compact wide /> : null}
-          </div>
+          <aside className="border border-white/15 bg-white/5 p-5 backdrop-blur sm:p-6" aria-label="Price drop statistics">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#67b7ff]">At a glance</p>
+            <p className="mt-3 text-sm leading-6 text-white/70">
+              {dropCount > 0
+                ? `Tracking ${dropCount} recent price drops across ${productsTracked} products, ranked by how far each price has fallen.`
+                : 'Drops appear here once tracked products have at least two price snapshots with a lower latest price.'}
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/10 pt-5">
+              <Stat label="Price drops" value={String(dropCount)} />
+              <Stat label="Biggest drop" value={dropCount > 0 ? `${topDrop}%` : '—'} />
+              <Stat label="Avg. drop" value={dropCount > 0 ? `${avgDrop}%` : '—'} />
+              <Stat label="Products tracked" value={String(productsTracked)} />
+            </div>
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-4 text-xs text-white/55">
+              <span>{snapshotsCount} snapshots · updated {updatedLabel}</span>
+              {totalSavings ? <span className="font-semibold text-[#67b7ff]">{totalSavings} tracked savings</span> : null}
+            </div>
+          </aside>
         </div>
       </div>
     </section>
   );
 }
 
-function Stat({ label, value, compact = false, wide = false }: { label: string; value: string; compact?: boolean; wide?: boolean }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className={`border border-ink/10 bg-[#f7f7f7] p-4 ${wide ? 'sm:col-span-2' : ''}`}>
-      <p className={`font-display font-bold text-ink ${compact ? 'text-lg leading-snug' : 'text-2xl'}`}>
-        {value}
-      </p>
-      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-ink/45">{label}</p>
+    <div>
+      <p className="font-display text-2xl font-bold text-white">{value}</p>
+      <p className="mt-1 text-sm text-white/55">{label}</p>
     </div>
   );
 }
@@ -255,11 +285,11 @@ function BrowseCard({ href, title, subtitle }: { href: string; title: string; su
   return (
     <Link
       href={href}
-      className="group flex flex-col bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_-20px_rgba(13,27,42,0.35)]"
+      className="group flex flex-col border border-ink/10 bg-white p-5 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_14px_28px_-20px_rgba(13,27,42,0.35)]"
     >
       <h4 className="font-display text-base font-bold text-ink group-hover:text-primary">{title}</h4>
       <p className="mt-1 text-sm text-ink/55">{subtitle}</p>
-      <span className="mt-3 text-xs font-bold uppercase tracking-[0.1em] text-primary">Browse</span>
+      <span className="mt-3 text-xs font-bold uppercase tracking-[0.1em] text-primary">Browse →</span>
     </Link>
   );
 }
@@ -279,8 +309,8 @@ function PriceDropCard({ drop, featured = false }: { drop: PriceDrop; featured?:
   const href = productHref(product);
 
   return (
-    <article className={`group flex h-full flex-col bg-white transition hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-24px_rgba(3,3,3,0.4)] ${featured ? 'ring-1 ring-primary/20' : ''}`}>
-      <Link href={href} className="grid aspect-[4/3] place-items-center bg-white p-5">
+    <article className={`group flex h-full flex-col border bg-white transition hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-24px_rgba(3,3,3,0.4)] ${featured ? 'border-primary/25 shadow-[0_12px_24px_-18px_rgba(21,86,238,0.2)]' : 'border-ink/10 hover:border-primary/30'}`}>
+      <Link href={href} className="grid aspect-[4/3] place-items-center border-b border-ink/10 bg-white p-5">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -297,8 +327,8 @@ function PriceDropCard({ drop, featured = false }: { drop: PriceDrop; featured?:
 
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-3">
-          <span className="inline-flex bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">
-            -{drop.dropPercent}%
+          <span className="inline-flex rounded bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+            Save {drop.dropPercent}%
           </span>
           {featured ? <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Featured</span> : null}
         </div>

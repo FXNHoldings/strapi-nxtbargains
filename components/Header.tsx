@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { BLOG_NAV_LINKS, SITE } from '@/lib/site';
+import { listCategories } from '@/lib/strapi';
 import MobileNav from './MobileNav';
 import StickyHeaderShadow from './StickyHeaderShadow';
 
@@ -16,7 +17,12 @@ export type NavItem = {
   children?: NavChild[];
 };
 
-const NAV: NavItem[] = [
+function buildNav(blogCategories: Array<{ slug: string; name: string }>): NavItem[] {
+  const blogLinks = blogCategories.length > 0
+    ? blogCategories.map((category) => ({ href: `/${category.slug}`, label: category.name }))
+    : BLOG_NAV_LINKS;
+
+  return [
   {
     href: '/products',
     label: 'All Products',
@@ -52,15 +58,21 @@ const NAV: NavItem[] = [
   },
   { href: '/price-drops', label: 'Price Drops' },
   {
-    href: '/deals',
-    label: 'Blog',
-    children: BLOG_NAV_LINKS,
+    href: '/posts',
+    label: 'All Articles',
+    children: [
+      ...blogLinks,
+    ],
   },
-];
+  ];
+}
 
 const navTestId = (label: string) => `nav-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
-export default function Header() {
+export default async function Header() {
+  const blogCategories = await listCategories().catch(() => []);
+  const nav = buildNav(blogCategories);
+
   return (
     <header
       className="sticky top-0 z-50 border-b border-ink/10 bg-white/85 backdrop-blur transition-shadow"
@@ -92,7 +104,7 @@ export default function Header() {
           data-testid="primary-nav"
         >
           <ul className="flex items-center gap-1">
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <li key={`${item.label}-${item.href}`} className="group relative">
                 <Link
                   href={item.href}
@@ -197,7 +209,7 @@ export default function Header() {
 
         {/* Mobile: hamburger */}
         <div className="flex items-center gap-2 md:hidden">
-          <MobileNav items={NAV} />
+          <MobileNav items={nav} />
         </div>
       </div>
     </header>

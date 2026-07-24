@@ -237,57 +237,80 @@ function Hero({
             'radial-gradient(at 80% 20%, rgba(21,86,238,0.22) 0%, transparent 50%), radial-gradient(at 15% 85%, rgba(16,185,129,0.12) 0%, transparent 50%)',
         }}
       />
-      <div className="relative mx-auto max-w-[1366px] px-6 py-10 sm:py-14">
-        <div className="flex flex-col gap-[3.5rem]">
-          <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/45">
-            <Link href="/" className="transition hover:text-white">Home</Link>
-            <span aria-hidden>/</span>
-            <span className="text-[#67b7ff]">Best deals</span>
-          </nav>
+      <div className="relative mx-auto max-w-[1366px] px-4 py-10 sm:px-6 sm:py-14">
+        <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/45">
+          <Link href="/" className="transition hover:text-white">Home</Link>
+          <span aria-hidden>/</span>
+          <span className="text-[#67b7ff]">Best deals</span>
+        </nav>
 
-          <div className="max-w-3xl">
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-start">
+          <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#67b7ff]">NXT.Bargains deals</p>
             <h1 className="mt-3 font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-[2.75rem]">
               Best deals across live merchant offers
             </h1>
-            <p className="mt-4 text-base leading-7 text-white/70 sm:text-lg">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
               Products ranked by current sale pricing from Real-Time Product Search,
               with catalog offers used as a fallback when live data is unavailable.
             </p>
+
+            <ul className="mt-6 max-w-2xl space-y-3 text-sm leading-6 text-white/75 sm:text-base">
+              <li className="flex gap-3">
+                <span className="mt-0.5 shrink-0 text-[#67b7ff]" aria-hidden>✓</span>
+                <span>Ranked by real discount — the biggest savings surface first.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-0.5 shrink-0 text-[#67b7ff]" aria-hidden>✓</span>
+                <span>Live offers from Amazon, eBay, Walmart, Newegg, and Best Buy.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-0.5 shrink-0 text-[#67b7ff]" aria-hidden>✓</span>
+                <span>Final price, shipping, and condition confirmed on the merchant site.</span>
+              </li>
+            </ul>
+
+            <div className="mt-10 flex flex-wrap gap-3">
+              <a href="#all-deals" className="inline-flex bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis">
+                View all deals
+              </a>
+              <Link href="/price-drops" className="inline-flex border border-white/20 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white/80 transition hover:border-white/40 hover:text-white">
+                Price drops
+              </Link>
+              <Link href="/products" className="inline-flex border border-white/20 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white/75 transition hover:border-white/40 hover:text-white">
+                All products
+              </Link>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-6 sm:gap-10">
-            <Stat label="Live deals" value={String(dealCount)} />
-            <Stat label="Top discount" value={dealCount > 0 ? `${topDiscount}%` : '—'} />
-            <Stat label="Avg. savings" value={dealCount > 0 ? `${avgDiscount}%` : '—'} />
-            <Stat label="Stores" value={String(storeCount)} />
-            <Stat label="Updated" value={updatedLabel} compact />
-            <Stat label="Source" value={sourceLabel} compact />
-          </div>
-        </div>
-
-        <div className="mt-[3.5rem] flex flex-wrap gap-3">
-          <a href="#all-deals" className="inline-flex bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-primary-emphasis">
-            View all deals
-          </a>
-          <Link href="/price-drops" className="inline-flex border border-white/20 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white/80 transition hover:border-white/40 hover:text-white">
-            Price drops
-          </Link>
-          <Link href="/products" className="inline-flex border border-white/20 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white/75 transition hover:border-white/40 hover:text-white">
-            All products
-          </Link>
+          <aside className="border border-white/15 bg-white/5 p-5 backdrop-blur sm:p-6" aria-label="Best deals statistics">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#67b7ff]">At a glance</p>
+            <p className="mt-3 text-sm leading-6 text-white/70">
+              {dealCount > 0
+                ? `A live snapshot of the ${dealCount} strongest deals we're tracking right now, ranked by discount across major marketplaces.`
+                : 'Deals appear here as live merchant offers with sale pricing are tracked across major marketplaces.'}
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/10 pt-5">
+              <Stat label="Live deals" value={String(dealCount)} />
+              <Stat label="Top discount" value={dealCount > 0 ? `${topDiscount}%` : '—'} />
+              <Stat label="Avg. savings" value={dealCount > 0 ? `${avgDiscount}%` : '—'} />
+              <Stat label="Stores" value={String(storeCount)} />
+            </div>
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-4 text-xs text-white/55">
+              <span>Updated {updatedLabel}</span>
+              <span className="font-semibold text-[#67b7ff]">{sourceLabel}</span>
+            </div>
+          </aside>
         </div>
       </div>
     </section>
   );
 }
 
-function Stat({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className={compact ? 'max-w-[180px]' : undefined}>
-      <p className={`font-display font-bold text-white ${compact ? 'text-base leading-snug' : 'text-3xl'}`}>
-        {value}
-      </p>
+    <div>
+      <p className="font-display text-2xl font-bold text-white">{value}</p>
       <p className="mt-1 text-sm text-white/55">{label}</p>
     </div>
   );

@@ -44,7 +44,7 @@ export default function Footer() {
           <div className="footer-brand-column sm:col-span-2">
             <Link href="/" className="mb-4 inline-block" aria-label={`${SITE.name} home`}>
               <Image
-                src="/nxt_bargains_logo.png"
+                src="/nxt_bargains_logo_light.svg"
                 alt={SITE.name}
                 width={450}
                 height={218}
@@ -78,8 +78,8 @@ export default function Footer() {
           </div>
 
           <FooterColumn title="About" links={aboutLinks} className="footer-about-column" />
-          <FooterColumn title="Shop" links={shopLinks} className="footer-shop-column" />
           <FooterColumn title="All Articles" links={FOOTER_ARTICLE_NAV_LINKS} className="footer-articles-column" />
+          <FooterColumn title="Shop" links={shopLinks} className="footer-shop-column" />
         </div>
 
         {/* comparing prices across */}
